@@ -9,7 +9,25 @@ export function HomePage({ pages, onNavigate, onLogout, userEmail }) {
             <div className="mx-auto flex max-w-[1400px] flex-col gap-10 px-6 pb-14 pt-12">
                 <section className="home-banner home-reveal">
                     <div className="home-banner-content">
-                        <p className="home-eyebrow">{t("home.eyebrow")}</p>
+                        <div className="home-eyebrow-row">
+                            <p className="home-eyebrow">{t("home.eyebrow")}</p>
+                            <div className="home-actions">
+                                <div className="home-control">
+                                    <label htmlFor="home-language-select">{t("language.label")}</label>
+                                    <select
+                                        id="home-language-select"
+                                        value={language}
+                                        onChange={(event) => setLanguage(event.target.value)}
+                                    >
+                                        <option value="en">{t("language.english")}</option>
+                                        <option value="he">{t("language.hebrew")}</option>
+                                    </select>
+                                </div>
+                                <button type="button" className="home-logout" onClick={onLogout}>
+                                    {t("nav.logout")}
+                                </button>
+                            </div>
+                        </div>
                         <h1 className="home-title">{t("home.bannerTitle")}</h1>
                         <p className="home-subtitle">{t("home.bannerSubtitle")}</p>
                         {userEmail ? (
@@ -18,22 +36,6 @@ export function HomePage({ pages, onNavigate, onLogout, userEmail }) {
                     </div>
                     <div className="home-banner-media" aria-hidden="true">
                         <img src={homeBannerImage} alt="" />
-                    </div>
-                    <div className="home-actions">
-                        <div className="home-control">
-                            <label htmlFor="home-language-select">{t("language.label")}</label>
-                            <select
-                                id="home-language-select"
-                                value={language}
-                                onChange={(event) => setLanguage(event.target.value)}
-                            >
-                                <option value="en">{t("language.english")}</option>
-                                <option value="he">{t("language.hebrew")}</option>
-                            </select>
-                        </div>
-                        <button type="button" className="home-logout" onClick={onLogout}>
-                            {t("nav.logout")}
-                        </button>
                     </div>
                 </section>
 
