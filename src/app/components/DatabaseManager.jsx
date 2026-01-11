@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { TopNavigation } from "./TopNavigation";
+import { HomePage } from "./HomePage";
 import { GenericTablePage } from "./GenericTablePage";
 import { toast } from "sonner";
 import { CompanyFormDialog } from "./forms/CompanyFormDialog";
@@ -14,7 +15,7 @@ import { ExcelUploadPage } from "./ExcelUploadPage";
 import { downloadExcelData, downloadExcelTemplateWorkbook, parseSheetRows, readExcelWorkbook } from "../utils/excel";
 export function DatabaseManager({ userEmail, onLogout }) {
     const { t } = useI18n();
-    const [currentPage, setCurrentPage] = useState("companies");
+    const [currentPage, setCurrentPage] = useState("home");
     // State for all tables
     const [companies, setCompanies] = useState([]);
     const [masterProducts, setMasterProducts] = useState([]);
@@ -766,8 +767,54 @@ export function DatabaseManager({ userEmail, onLogout }) {
             setIsSaving(false);
         });
     };
+    const homePages = [
+        {
+            key: "companies",
+            label: t("nav.companies"),
+            description: t("tables.companiesDescription"),
+            accent: "#1d4ed8",
+        },
+        {
+            key: "master-products",
+            label: t("nav.masterProducts"),
+            description: t("tables.masterProductsDescription"),
+            accent: "#0f766e",
+        },
+        {
+            key: "master-agents",
+            label: t("nav.masterAgents"),
+            description: t("tables.masterAgentsDescription"),
+            accent: "#c2410c",
+        },
+        {
+            key: "products-per-company",
+            label: t("nav.productsPerCompany"),
+            description: t("tables.productsPerCompanyDescription"),
+            accent: "#7e22ce",
+        },
+        {
+            key: "agents-per-company",
+            label: t("nav.agentsPerCompany"),
+            description: t("tables.agentsPerCompanyDescription"),
+            accent: "#0f172a",
+        },
+        {
+            key: "user-access",
+            label: t("nav.userAccess"),
+            description: t("tables.userAccessDescription"),
+            accent: "#065f46",
+        },
+        {
+            key: "excel-upload",
+            label: t("nav.excelUpload"),
+            description: t("excel.pageDescription"),
+            accent: "#4338ca",
+        },
+    ];
     const renderPage = () => {
         switch (currentPage) {
+            case "home":
+                return (<HomePage pages={homePages} onNavigate={setCurrentPage} onLogout={onLogout} userEmail={userEmail}/>);
             case "companies":
                 return (<>
             <GenericTablePage title={t("tables.companiesTitle")} description={t("tables.companiesDescription")} columns={companyColumns} data={companies} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onDelete={handleDeleteCompany} getItemId={(item) => item.company_code} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel}/>
@@ -815,7 +862,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
         }
     };
     return (<div className="min-h-screen bg-gray-50">
-      <TopNavigation currentPage={currentPage} onNavigate={setCurrentPage} onLogout={onLogout} userEmail={userEmail}/>
+      {currentPage !== "home" ? (<TopNavigation currentPage={currentPage} onNavigate={setCurrentPage} onLogout={onLogout} userEmail={userEmail}/>) : null}
       {renderPage()}
     </div>);
 }

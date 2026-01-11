@@ -22,6 +22,7 @@ export function TopNavigation({ currentPage, onNavigate, onLogout, userEmail }) 
         };
     }, [showMobileMenu]);
     const menuItems = [
+        { id: "home", label: t("nav.home") },
         { id: "companies", label: t("nav.companies") },
         { id: "master-products", label: t("nav.masterProducts") },
         { id: "master-agents", label: t("nav.masterAgents") },
@@ -33,10 +34,10 @@ export function TopNavigation({ currentPage, onNavigate, onLogout, userEmail }) 
     return (<nav className="bg-white border-b-2 border-blue-100 shadow-md sticky top-0 z-50">
       <div className="w-full mx-auto px-6">
         <div className="flex items-center justify-between h-14">
-          <div className="flex items-center gap-3">
+          <button type="button" onClick={() => onNavigate("home")} className="flex items-center gap-3 rounded-xl transition hover:opacity-90" aria-label={t("nav.home")}>
             <img src={topNavImage} alt="Top navigation" className="w-24 h-12 rounded-xl object-cover border border-blue-100"/>
             <h1 className="text-xl font-bold text-blue-900">{t("app.shortName")}</h1>
-          </div>
+          </button>
 
           <div className="hidden xl:flex items-center gap-1">
             {menuItems.map((item) => (<button key={item.id} onClick={() => onNavigate(item.id)} className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${currentPage === item.id

@@ -10,6 +10,15 @@
       "english": "English",
       "hebrew": "Hebrew"
     },
+    "home": {
+      "eyebrow": "Reference Console",
+      "bannerTitle": "Reference Tables Hub",
+      "bannerSubtitle": "Jump into any table or start an Excel bulk upload.",
+      "signedInAs": "Signed in as {email}",
+      "gridTitle": "Pick a tab",
+      "gridSubtitle": "Each box opens a table for managing data.",
+      "openWorkspace": "Open tab"
+    },
     "excel": {
       "pageTitle": "Excel Upload",
       "pageDescription": "Upload data for multiple tables using a single Excel file.",
@@ -42,6 +51,7 @@
       }
     },
     "nav": {
+      "home": "Home",
       "companies": "Companies",
       "masterProducts": "Master Products",
       "masterAgents": "Master Agents",
@@ -311,6 +321,15 @@
       "english": "אנגלית",
       "hebrew": "עברית"
     },
+    "home": {
+      "eyebrow": "מסוף נתוני הפניה",
+      "bannerTitle": "מרכז טבלאות ההפניה",
+      "bannerSubtitle": "בחר טבלה לניהול או התחל העלאת אקסל מרובה.",
+      "signedInAs": "מחובר כ־{email}",
+      "gridTitle": "בחר לשונית",
+      "gridSubtitle": "כל תיבה פותחת טבלה לניהול נתונים.",
+      "openWorkspace": "פתח לשונית"
+    },
     "excel": {
       "pageTitle": "העלאת אקסל",
       "pageDescription": "העלאת נתונים למספר טבלאות באמצעות קובץ אקסל אחד.",
@@ -343,6 +362,7 @@
       }
     },
     "nav": {
+      "home": "בית",
       "companies": "חברות",
       "masterProducts": "מוצרי אב",
       "masterAgents": "סוכני אב",
