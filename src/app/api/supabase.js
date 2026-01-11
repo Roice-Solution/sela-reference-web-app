@@ -45,7 +45,9 @@ export const companiesApi = {
     return data || [];
   },
   create: async (payload) => {
-    const { data, error } = await supabase.from("companies").insert(payload).select();
+    const normalized = { ...(payload || {}) };
+    delete normalized.company_code;
+    const { data, error } = await supabase.from("companies").insert(normalized).select();
     if (error) throw error;
     return data || [];
   },
@@ -71,14 +73,32 @@ export const masterProductsApi = {
     return data || [];
   },
   create: async (payload) => {
-    const { data, error } = await supabase.from("master_products").insert(payload).select();
+    const normalized = Object.fromEntries(
+      Object.entries(payload || {}).filter(([_, value]) => {
+        if (value === null || value === undefined) return false;
+        if (typeof value === "string" && value.trim() === "") return false;
+        return true;
+      })
+    );
+    if (!normalized.master_product_code || String(normalized.master_product_code).trim() === "") {
+      delete normalized.master_product_code;
+    }
+    const { data, error } = await supabase.from("master_products").insert(normalized).select();
     if (error) throw error;
     return data || [];
   },
   update: async (code, payload) => {
+    const normalized = Object.fromEntries(
+      Object.entries(payload || {}).filter(([_, value]) => {
+        if (value === null || value === undefined) return false;
+        if (typeof value === "string" && value.trim() === "") return false;
+        return true;
+      })
+    );
+    delete normalized.master_product_code;
     const { data, error } = await supabase
       .from("master_products")
-      .update(payload)
+      .update(normalized)
       .eq("master_product_code", code)
       .select();
     if (error) throw error;
@@ -94,17 +114,49 @@ export const masterAgentsApi = {
   list: async () => {
     const { data, error } = await supabase.from("master_agents").select("*").limit(50);
     if (error) throw error;
-    return data || [];
+    return (data || []).map((agent) => ({
+      ...agent,
+      license_owner_phone: agent.license_owner_phone ?? agent.license_owner_phone_number ?? "",
+      business_cat: agent.business_cat ?? agent.business_unit ?? "",
+    }));
   },
   create: async (payload) => {
-    const { data, error } = await supabase.from("master_agents").insert(payload).select();
+    const normalized = Object.fromEntries(
+      Object.entries(payload || {}).filter(([_, value]) => {
+        if (value === null || value === undefined) return false;
+        if (typeof value === "string" && value.trim() === "") return false;
+        return true;
+      })
+    );
+    normalized.license_owner_phone_number =
+      normalized.license_owner_phone_number ?? normalized.license_owner_phone;
+    normalized.business_unit = normalized.business_unit ?? normalized.business_cat;
+    if (!normalized.master_agent_code || String(normalized.master_agent_code).trim() === "") {
+      delete normalized.master_agent_code;
+    }
+    delete normalized.license_owner_phone;
+    delete normalized.business_cat;
+    const { data, error } = await supabase.from("master_agents").insert(normalized).select();
     if (error) throw error;
     return data || [];
   },
   update: async (code, payload) => {
+    const normalized = Object.fromEntries(
+      Object.entries(payload || {}).filter(([_, value]) => {
+        if (value === null || value === undefined) return false;
+        if (typeof value === "string" && value.trim() === "") return false;
+        return true;
+      })
+    );
+    normalized.license_owner_phone_number =
+      normalized.license_owner_phone_number ?? normalized.license_owner_phone;
+    normalized.business_unit = normalized.business_unit ?? normalized.business_cat;
+    delete normalized.master_agent_code;
+    delete normalized.license_owner_phone;
+    delete normalized.business_cat;
     const { data, error } = await supabase
       .from("master_agents")
-      .update(payload)
+      .update(normalized)
       .eq("master_agent_code", code)
       .select();
     if (error) throw error;

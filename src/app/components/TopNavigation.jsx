@@ -1,6 +1,7 @@
 import { LogOut, Menu, User, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "../i18n/i18n";
+import topNavImage from "../../assets/top-nav.jpeg";
 export function TopNavigation({ currentPage, onNavigate, onLogout, userEmail }) {
     const { t, language, setLanguage } = useI18n();
     const [showUserMenu, setShowUserMenu] = useState(false);
@@ -31,11 +32,9 @@ export function TopNavigation({ currentPage, onNavigate, onLogout, userEmail }) 
     ];
     return (<nav className="bg-white border-b-2 border-blue-100 shadow-md sticky top-0 z-50">
       <div className="w-full mx-auto px-6">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-14">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-12 h-12 bg-blue-600 rounded-xl">
-              <span className="text-white text-xl font-bold">SELA</span>
-            </div>
+            <img src={topNavImage} alt="Top navigation" className="w-24 h-12 rounded-xl object-cover border border-blue-100"/>
             <h1 className="text-xl font-bold text-blue-900">{t("app.shortName")}</h1>
           </div>
 

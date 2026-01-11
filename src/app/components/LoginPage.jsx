@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Lock, Mail } from "lucide-react";
 import { useI18n } from "../i18n/i18n";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import loginHero from "../../assets/login-hero.png";
 export function LoginPage({ onLogin, isLoading }) {
     const { t, language, setLanguage } = useI18n();
     const [email, setEmail] = useState("");
@@ -27,7 +28,7 @@ export function LoginPage({ onLogin, isLoading }) {
     return (<div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center p-4">
       <div className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden flex">
         <div className="hidden lg:block lg:w-1/2 relative">
-          <ImageWithFallback src="https://images.unsplash.com/photo-1758691462430-81160850496c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbnN1cmFuY2UlMjBwcm9mZXNzaW9uYWwlMjBvZmZpY2V8ZW58MXx8fHwxNzY3NTk1ODQ5fDA&ixlib=rb-4.1.0&q=80&w=1080" alt="Insurance office" className="w-full h-full object-cover"/>
+          <ImageWithFallback src={loginHero} alt="Login illustration" className="w-full h-full object-cover"/>
           <div className="absolute inset-0 bg-gradient-to-t from-blue-900/90 to-blue-900/20 flex items-end p-8">
             <div className="text-white">
               <h3 className="text-2xl font-bold mb-2">{t("auth.leftTitle")}</h3>
