@@ -994,7 +994,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
     const handleView = (page, item) => {
         setDrawerPage(page);
         setDrawerItem(item);
-        if (page === "companies") {
+        if (page === "companies" || page === "master-products" || page === "master-agents") {
             loadCompanyDetailData();
         }
     };
@@ -1160,7 +1160,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
     const masterProductMap = new Map(masterProducts.map((product) => [product.master_product_code, product.master_product_name]));
     const masterAgentMap = new Map(masterAgents.map((agent) => [agent.master_agent_code, agent.full_agent_name]));
     const companyLinkedContent = (() => {
-        if (drawerPage !== "companies" || !drawerItem) return null;
+        if (!drawerItem) return null;
         const companyProducts = productsPerCompany.filter((product) => product.company_code === drawerItem.company_code);
         const companyAgents = agentsPerCompany.filter((agent) => agent.company_code === drawerItem.company_code);
         return (
@@ -1325,6 +1325,62 @@ export function DatabaseManager({ userEmail, onLogout }) {
             </div>
         );
     })();
+    const masterProductLinkedContent = (() => {
+        if (!drawerItem) return null;
+        const linkedCompanies = productsPerCompany.filter((product) => product.master_product_code === drawerItem.master_product_code);
+        return (
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <div className="text-sm font-semibold text-slate-900">{t("drawer.linkedCompanies")}</div>
+                <div className="mt-4 divide-y divide-slate-100">
+                    {linkedCompanies.length ? (
+                        linkedCompanies.map((product) => (
+                            <div key={product.id} className="flex items-center justify-between gap-4 py-2 text-sm text-slate-700">
+                                <div>
+                                    <div className="font-semibold text-slate-800">
+                                        {product.company?.company_name || product.company_name || product.company_code}
+                                    </div>
+                                    <div className="text-xs text-slate-500">{product.company_product_name}</div>
+                                </div>
+                                <div className="text-xs text-slate-400">{product.company_code}</div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="py-3 text-sm text-slate-500">{t("drawer.noMappings")}</div>
+                    )}
+                </div>
+            </div>
+        );
+    })();
+    const masterAgentLinkedContent = (() => {
+        if (!drawerItem) return null;
+        const linkedCompanies = agentsPerCompany.filter((agent) => agent.master_agent_code === drawerItem.master_agent_code);
+        return (
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <div className="text-sm font-semibold text-slate-900">{t("drawer.linkedCompanies")}</div>
+                <div className="mt-4 divide-y divide-slate-100">
+                    {linkedCompanies.length ? (
+                        linkedCompanies.map((agent) => (
+                            <div key={agent.id} className="flex items-center justify-between gap-4 py-2 text-sm text-slate-700">
+                                <div>
+                                    <div className="font-semibold text-slate-800">
+                                        {agent.company?.company_name || agent.company_name || agent.company_code}
+                                    </div>
+                                    <div className="text-xs text-slate-500">
+                                        {agent.master_product?.master_product_name ||
+                                            masterProductMap.get(agent.master_product_code) ||
+                                            agent.master_product_code}
+                                    </div>
+                                </div>
+                                <div className="text-xs text-slate-400">{agent.company_code}</div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="py-3 text-sm text-slate-500">{t("drawer.noMappings")}</div>
+                    )}
+                </div>
+            </div>
+        );
+    })();
     const resolveUserName = (user) => {
         if (!user) return null;
         return user.full_name || user.email || user.id || null;
@@ -1356,7 +1412,15 @@ export function DatabaseManager({ userEmail, onLogout }) {
                 title={drawerTitleMap[drawerPage] || ""}
                 columns={drawerPage ? drawerColumnsMap[drawerPage] || [] : []}
                 item={drawerItem}
-                linkedContent={companyLinkedContent}
+                linkedContent={
+                    drawerPage === "companies"
+                        ? companyLinkedContent
+                        : drawerPage === "master-products"
+                        ? masterProductLinkedContent
+                        : drawerPage === "master-agents"
+                        ? masterAgentLinkedContent
+                        : null
+                }
                 historyFields={historyFields}
                 onEdit={
                     drawerItem
