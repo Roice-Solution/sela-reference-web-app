@@ -35,14 +35,14 @@ export function TablePage({ category, title, entries, onAddEntry, onEditEntry, o
           <p className="text-gray-600">{t("tables.manageReferenceEntries", { title: title.toLowerCase() })}</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200">
-          <div className="p-4 sm:p-6 border-b-2 border-gray-200 bg-blue-50">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
+          <div className="p-4 sm:p-6 border-b border-slate-200 bg-slate-50">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="relative w-full sm:flex-1 sm:max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400"/>
-                <input type="text" placeholder={t("genericTable.searchBy")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-3 py-2 border-2 border-blue-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"/>
+                <input type="text" placeholder={t("genericTable.searchBy")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-3 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"/>
               </div>
-              <button onClick={() => setIsAddDialogOpen(true)} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-full hover:bg-blue-700 transition-all font-medium shadow-md hover:shadow-lg">
+              <button onClick={() => setIsAddDialogOpen(true)} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-all font-medium shadow-md hover:shadow-lg">
                 <Plus className="w-4 h-4"/>
                 {t("common.addEntry")}
               </button>

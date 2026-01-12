@@ -40,21 +40,49 @@ export async function logout() {
 
 export const companiesApi = {
   list: async () => {
-    const { data, error } = await supabase.from("companies").select("*").limit(50);
+    const { data, error } = await supabase
+      .from("companies")
+      .select(
+        "*,created_by_user:profiles!companies_created_by_fkey(id,email,full_name),updated_by_user:profiles!companies_updated_by_fkey(id,email,full_name)"
+      )
+      .limit(50);
     if (error) throw error;
     return data || [];
+  },
+  count: async () => {
+    const { count, error } = await supabase
+      .from("companies")
+      .select("*", { count: "exact", head: true });
+    if (error) throw error;
+    return count || 0;
+  },
+  latestUpdated: async () => {
+    const { data, error } = await supabase
+      .from("companies")
+      .select("updated_at,created_at")
+      .order("updated_at", { ascending: false, nullsLast: true })
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    const row = data?.[0];
+    return row?.updated_at || row?.created_at || null;
   },
   create: async (payload) => {
     const normalized = { ...(payload || {}) };
     delete normalized.company_code;
+    delete normalized.created_by_user;
+    delete normalized.updated_by_user;
     const { data, error } = await supabase.from("companies").insert(normalized).select();
     if (error) throw error;
     return data || [];
   },
   update: async (companyCode, payload) => {
+    const normalized = { ...(payload || {}) };
+    delete normalized.created_by_user;
+    delete normalized.updated_by_user;
     const { data, error } = await supabase
       .from("companies")
-      .update(payload)
+      .update(normalized)
       .eq("company_code", companyCode)
       .select();
     if (error) throw error;
@@ -68,9 +96,21 @@ export const companiesApi = {
 
 export const masterProductsApi = {
   list: async () => {
-    const { data, error } = await supabase.from("master_products").select("*").limit(50);
+    const { data, error } = await supabase
+      .from("master_products")
+      .select(
+        "*,created_by_user:profiles!master_products_created_by_fkey(id,email,full_name),updated_by_user:profiles!master_products_updated_by_fkey(id,email,full_name)"
+      )
+      .limit(50);
     if (error) throw error;
     return data || [];
+  },
+  count: async () => {
+    const { count, error } = await supabase
+      .from("master_products")
+      .select("*", { count: "exact", head: true });
+    if (error) throw error;
+    return count || 0;
   },
   create: async (payload) => {
     const normalized = Object.fromEntries(
@@ -80,6 +120,8 @@ export const masterProductsApi = {
         return true;
       })
     );
+    delete normalized.created_by_user;
+    delete normalized.updated_by_user;
     if (!normalized.master_product_code || String(normalized.master_product_code).trim() === "") {
       delete normalized.master_product_code;
     }
@@ -95,6 +137,8 @@ export const masterProductsApi = {
         return true;
       })
     );
+    delete normalized.created_by_user;
+    delete normalized.updated_by_user;
     delete normalized.master_product_code;
     const { data, error } = await supabase
       .from("master_products")
@@ -112,7 +156,12 @@ export const masterProductsApi = {
 
 export const masterAgentsApi = {
   list: async () => {
-    const { data, error } = await supabase.from("master_agents").select("*").limit(50);
+    const { data, error } = await supabase
+      .from("master_agents")
+      .select(
+        "*,created_by_user:profiles!master_agents_created_by_fkey(id,email,full_name),updated_by_user:profiles!master_agents_updated_by_fkey(id,email,full_name)"
+      )
+      .limit(50);
     if (error) throw error;
     return (data || []).map((agent) => ({
       ...agent,
@@ -128,6 +177,8 @@ export const masterAgentsApi = {
         return true;
       })
     );
+    delete normalized.created_by_user;
+    delete normalized.updated_by_user;
     normalized.license_owner_phone_number =
       normalized.license_owner_phone_number ?? normalized.license_owner_phone;
     normalized.business_unit = normalized.business_unit ?? normalized.business_cat;
@@ -140,6 +191,13 @@ export const masterAgentsApi = {
     if (error) throw error;
     return data || [];
   },
+  count: async () => {
+    const { count, error } = await supabase
+      .from("master_agents")
+      .select("*", { count: "exact", head: true });
+    if (error) throw error;
+    return count || 0;
+  },
   update: async (code, payload) => {
     const normalized = Object.fromEntries(
       Object.entries(payload || {}).filter(([_, value]) => {
@@ -148,6 +206,8 @@ export const masterAgentsApi = {
         return true;
       })
     );
+    delete normalized.created_by_user;
+    delete normalized.updated_by_user;
     normalized.license_owner_phone_number =
       normalized.license_owner_phone_number ?? normalized.license_owner_phone;
     normalized.business_unit = normalized.business_unit ?? normalized.business_cat;
@@ -170,19 +230,46 @@ export const masterAgentsApi = {
 
 export const productsPerCompanyApi = {
   list: async () => {
-    const { data, error } = await supabase.from("products_per_company").select("*").limit(50);
+    const { data, error } = await supabase
+      .from("products_per_company")
+      .select(
+        "*,company:companies(company_code,company_name),master_product:master_products(master_product_code,master_product_name),created_by_user:profiles!products_per_company_created_by_fkey(id,email,full_name),updated_by_user:profiles!products_per_company_updated_by_fkey(id,email,full_name)"
+      )
+      .limit(50);
     if (error) throw error;
     return data || [];
   },
+  count: async () => {
+    const { count, error } = await supabase
+      .from("products_per_company")
+      .select("*", { count: "exact", head: true });
+    if (error) throw error;
+    return count || 0;
+  },
+  latestUpdated: async () => {
+    const { data, error } = await supabase
+      .from("products_per_company")
+      .select("updated_at,created_at")
+      .order("updated_at", { ascending: false, nullsLast: true })
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    const row = data?.[0];
+    return row?.updated_at || row?.created_at || null;
+  },
   create: async (payload) => {
-    const { data, error } = await supabase.from("products_per_company").insert(payload).select();
+    const { company_code, master_product_code, company_product_name } = payload || {};
+    const normalized = { company_code, master_product_code, company_product_name };
+    const { data, error } = await supabase.from("products_per_company").insert(normalized).select();
     if (error) throw error;
     return data || [];
   },
   update: async (id, payload) => {
+    const { company_code, master_product_code, company_product_name } = payload || {};
+    const normalized = { company_code, master_product_code, company_product_name };
     const { data, error } = await supabase
       .from("products_per_company")
-      .update(payload)
+      .update(normalized)
       .eq("id", id)
       .select();
     if (error) throw error;
@@ -196,19 +283,48 @@ export const productsPerCompanyApi = {
 
 export const agentsPerCompanyApi = {
   list: async () => {
-    const { data, error } = await supabase.from("agents_per_company").select("*").limit(50);
+    const { data, error } = await supabase
+      .from("agents_per_company")
+      .select(
+        "*,company:companies(company_code,company_name),master_agent:master_agents(master_agent_code,full_agent_name),master_product:master_products(master_product_code,master_product_name),created_by_user:profiles!agents_per_company_created_by_fkey(id,email,full_name),updated_by_user:profiles!agents_per_company_updated_by_fkey(id,email,full_name)"
+      )
+      .limit(50);
     if (error) throw error;
     return data || [];
   },
+  count: async () => {
+    const { count, error } = await supabase
+      .from("agents_per_company")
+      .select("*", { count: "exact", head: true });
+    if (error) throw error;
+    return count || 0;
+  },
+  latestUpdated: async () => {
+    const { data, error } = await supabase
+      .from("agents_per_company")
+      .select("updated_at,created_at")
+      .order("updated_at", { ascending: false, nullsLast: true })
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    const row = data?.[0];
+    return row?.updated_at || row?.created_at || null;
+  },
   create: async (payload) => {
-    const { data, error } = await supabase.from("agents_per_company").insert(payload).select();
+    const normalized = { ...(payload || {}) };
+    delete normalized.created_by_user;
+    delete normalized.updated_by_user;
+    const { data, error } = await supabase.from("agents_per_company").insert(normalized).select();
     if (error) throw error;
     return data || [];
   },
   update: async (id, payload) => {
+    const normalized = { ...(payload || {}) };
+    delete normalized.created_by_user;
+    delete normalized.updated_by_user;
     const { data, error } = await supabase
       .from("agents_per_company")
-      .update(payload)
+      .update(normalized)
       .eq("id", id)
       .select();
     if (error) throw error;
@@ -225,6 +341,13 @@ export const userAccessApi = {
     const { data, error } = await supabase.from("user_access").select("*").limit(50);
     if (error) throw error;
     return data || [];
+  },
+  count: async () => {
+    const { count, error } = await supabase
+      .from("user_access")
+      .select("*", { count: "exact", head: true });
+    if (error) throw error;
+    return count || 0;
   },
   create: async (payload) => {
     const { data, error } = await supabase.from("user_access").insert(payload).select();

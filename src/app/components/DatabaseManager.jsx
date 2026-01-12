@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { TopNavigation } from "./TopNavigation";
+import { AppShell } from "./AppShell";
 import { HomePage } from "./HomePage";
 import { GenericTablePage } from "./GenericTablePage";
 import { toast } from "sonner";
@@ -13,9 +13,11 @@ import { agentsPerCompanyApi, companiesApi, masterAgentsApi, masterProductsApi, 
 import { useI18n } from "../i18n/i18n";
 import { ExcelUploadPage } from "./ExcelUploadPage";
 import { downloadExcelData, downloadExcelTemplateWorkbook, parseSheetRows, readExcelWorkbook } from "../utils/excel";
+import { RecordDrawer } from "./RecordDrawer";
 export function DatabaseManager({ userEmail, onLogout }) {
     const { t } = useI18n();
     const [currentPage, setCurrentPage] = useState("home");
+    const [searchQuery, setSearchQuery] = useState("");
     // State for all tables
     const [companies, setCompanies] = useState([]);
     const [masterProducts, setMasterProducts] = useState([]);
@@ -28,7 +30,51 @@ export function DatabaseManager({ userEmail, onLogout }) {
     // Dialog states
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
+    const [drawerItem, setDrawerItem] = useState(null);
+    const [drawerPage, setDrawerPage] = useState(null);
     const [pendingUploads, setPendingUploads] = useState(null);
+    const [homeCounts, setHomeCounts] = useState(null);
+    const [homeLastUpdated, setHomeLastUpdated] = useState({
+        companies: null,
+        "products-per-company": null,
+        "agents-per-company": null,
+    });
+    const [productMappingForm, setProductMappingForm] = useState({
+        master_product_code: "",
+        company_product_name: "",
+    });
+    const [agentMappingForm, setAgentMappingForm] = useState({
+        master_agent_code: "",
+        master_product_code: "",
+        comments: "",
+    });
+    const homeStats = useMemo(() => ({
+        companies: homeCounts?.companies ?? companies.length,
+        masterProducts: homeCounts?.masterProducts ?? masterProducts.length,
+        masterAgents: homeCounts?.masterAgents ?? masterAgents.length,
+        userAccess: homeCounts?.userAccess ?? userAccess.length,
+    }), [companies, masterAgents, masterProducts, homeCounts, userAccess]);
+    const getLatestTimestamp = (items) => {
+        if (!items || items.length === 0) return null;
+        return items.reduce((latest, item) => {
+            const value = item?.updated_at || item?.created_at;
+            if (!value) return latest;
+            const time = new Date(value).getTime();
+            if (Number.isNaN(time)) return latest;
+            if (!latest || time > latest) return time;
+            return latest;
+        }, null);
+    };
+    const computedLastUpdated = useMemo(() => ({
+        companies: getLatestTimestamp(companies),
+        "products-per-company": getLatestTimestamp(productsPerCompany),
+        "agents-per-company": getLatestTimestamp(agentsPerCompany),
+    }), [companies, productsPerCompany, agentsPerCompany]);
+    const mergedLastUpdated = useMemo(() => ({
+        companies: computedLastUpdated.companies ?? homeLastUpdated.companies,
+        "products-per-company": computedLastUpdated["products-per-company"] ?? homeLastUpdated["products-per-company"],
+        "agents-per-company": computedLastUpdated["agents-per-company"] ?? homeLastUpdated["agents-per-company"],
+    }), [computedLastUpdated, homeLastUpdated]);
     // Column configurations for each table
     const companyColumns = [
         { key: "company_code", label: t("columns.code"), width: "w-[120px]", type: "code" },
@@ -58,15 +104,20 @@ export function DatabaseManager({ userEmail, onLogout }) {
     const productPerCompanyColumns = [
         { key: "id", label: t("columns.id"), width: "w-[80px]" },
         { key: "company_code", label: t("columns.company"), width: "w-[120px]", type: "code" },
-        { key: "company_product_name", label: t("columns.productName"), width: "w-[250px]" },
+        { key: "company_name", label: t("columns.companyName"), width: "w-[200px]" },
+        { key: "company_product_name", label: t("columns.companyProductName"), width: "w-[250px]" },
         { key: "master_product_code", label: t("columns.masterProduct"), width: "w-[150px]", type: "code" },
+        { key: "master_product_name", label: t("columns.masterProductName"), width: "w-[220px]" },
         { key: "created_at", label: t("columns.created"), width: "w-[120px]", type: "date" },
     ];
     const agentPerCompanyColumns = [
         { key: "id", label: t("columns.id"), width: "w-[80px]" },
         { key: "company_code", label: t("columns.company"), width: "w-[120px]", type: "code" },
+        { key: "company_name", label: t("columns.companyName"), width: "w-[200px]" },
         { key: "master_agent_code", label: t("columns.agent"), width: "w-[120px]", type: "code" },
+        { key: "master_agent_name", label: t("columns.agentName"), width: "w-[200px]" },
         { key: "master_product_code", label: t("columns.masterProduct"), width: "w-[120px]", type: "code" },
+        { key: "master_product_name", label: t("columns.productName"), width: "w-[200px]" },
         { key: "comments", label: t("columns.comments"), width: "w-[200px]" },
         { key: "created_at", label: t("columns.created"), width: "w-[120px]", type: "date" },
     ];
@@ -76,6 +127,25 @@ export function DatabaseManager({ userEmail, onLogout }) {
         { key: "role", label: t("columns.role"), width: "w-[120px]" },
         { key: "created_at", label: t("columns.created"), width: "w-[150px]", type: "date" },
     ];
+    const normalizedProductsPerCompany = useMemo(
+        () =>
+            productsPerCompany.map((item) => ({
+                ...item,
+                company_name: item.company?.company_name ?? item.company_name ?? "",
+                master_product_name: item.master_product?.master_product_name ?? item.master_product_name ?? "",
+            })),
+        [productsPerCompany]
+    );
+    const normalizedAgentsPerCompany = useMemo(
+        () =>
+            agentsPerCompany.map((item) => ({
+                ...item,
+                company_name: item.company?.company_name ?? item.company_name ?? "",
+                master_agent_name: item.master_agent?.full_agent_name ?? item.master_agent_name ?? "",
+                master_product_name: item.master_product?.master_product_name ?? item.master_product_name ?? "",
+            })),
+        [agentsPerCompany]
+    );
     const excelConfig = useMemo(() => ({
         companies: {
             fileName: "companies",
@@ -230,7 +300,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
                 { key: "updated_by", label: t("columns.updatedBy") },
                 { key: "created_by", label: t("columns.createdBy") },
             ],
-            data: productsPerCompany,
+            data: normalizedProductsPerCompany,
             upload: (rows) => productsPerCompanyApi.create(rows),
         },
         "agents-per-company": {
@@ -256,7 +326,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
                 { key: "updated_by", label: t("columns.updatedBy") },
                 { key: "created_by", label: t("columns.createdBy") },
             ],
-            data: agentsPerCompany,
+            data: normalizedAgentsPerCompany,
             upload: (rows) => agentsPerCompanyApi.create(rows),
         },
         "user-access": {
@@ -376,6 +446,41 @@ export function DatabaseManager({ userEmail, onLogout }) {
                 return [];
             };
             switch (page) {
+                case "home": {
+                    const results = await Promise.allSettled([
+                        companiesApi.count(),
+                        masterProductsApi.count(),
+                        masterAgentsApi.count(),
+                        userAccessApi.count(),
+                        companiesApi.latestUpdated(),
+                        productsPerCompanyApi.latestUpdated(),
+                        agentsPerCompanyApi.latestUpdated(),
+                    ]);
+                    const getCount = (result, label) => {
+                        if (result.status === "fulfilled") return result.value || 0;
+                        const details = result.reason?.message ? ` ${result.reason.message}` : "";
+                        toast.error(t("toasts.loadLabelFailed", { label }) + details);
+                        return 0;
+                    };
+                    const getLatest = (result, label) => {
+                        if (result.status === "fulfilled") return result.value || null;
+                        const details = result.reason?.message ? ` ${result.reason.message}` : "";
+                        toast.error(t("toasts.loadLabelFailed", { label }) + details);
+                        return null;
+                    };
+                    setHomeCounts({
+                        companies: getCount(results[0], t("tables.companiesTitle")),
+                        masterProducts: getCount(results[1], t("tables.masterProductsTitle")),
+                        masterAgents: getCount(results[2], t("tables.masterAgentsTitle")),
+                        userAccess: getCount(results[3], t("tables.userAccessTitle")),
+                    });
+                    setHomeLastUpdated({
+                        companies: getLatest(results[4], t("tables.companiesTitle")),
+                        "products-per-company": getLatest(results[5], t("tables.productsPerCompanyTitle")),
+                        "agents-per-company": getLatest(results[6], t("tables.agentsPerCompanyTitle")),
+                    });
+                    break;
+                }
                 case "companies": {
                     const result = await Promise.allSettled([companiesApi.list()]);
                     setCompanies(getValue(result[0], t("tables.companiesTitle")));
@@ -772,82 +877,216 @@ export function DatabaseManager({ userEmail, onLogout }) {
             key: "companies",
             label: t("nav.companies"),
             description: t("tables.companiesDescription"),
-            accent: "#1d4ed8",
         },
         {
             key: "master-products",
             label: t("nav.masterProducts"),
             description: t("tables.masterProductsDescription"),
-            accent: "#0f766e",
         },
         {
             key: "master-agents",
             label: t("nav.masterAgents"),
             description: t("tables.masterAgentsDescription"),
-            accent: "#c2410c",
         },
         {
             key: "products-per-company",
             label: t("nav.productsPerCompany"),
             description: t("tables.productsPerCompanyDescription"),
-            accent: "#7e22ce",
         },
         {
             key: "agents-per-company",
             label: t("nav.agentsPerCompany"),
             description: t("tables.agentsPerCompanyDescription"),
-            accent: "#0f172a",
         },
         {
             key: "user-access",
             label: t("nav.userAccess"),
             description: t("tables.userAccessDescription"),
-            accent: "#065f46",
         },
         {
             key: "excel-upload",
             label: t("nav.excelUpload"),
             description: t("excel.pageDescription"),
-            accent: "#4338ca",
         },
     ];
+    const navSections = [
+        {
+            id: "dashboard",
+            label: t("nav.home"),
+            items: [{ id: "home", label: t("nav.home") }],
+        },
+        {
+            id: "tables",
+            label: t("nav.tablesSection"),
+            items: [{ id: "companies", label: t("nav.companies") }],
+        },
+        {
+            id: "masters",
+            label: t("nav.mastersSection"),
+            items: [
+                { id: "master-products", label: t("nav.masterProducts") },
+                { id: "master-agents", label: t("nav.masterAgents") },
+            ],
+        },
+        {
+            id: "mappings",
+            label: t("nav.mappingsSection"),
+            items: [
+                { id: "products-per-company", label: t("nav.productsPerCompany") },
+                { id: "agents-per-company", label: t("nav.agentsPerCompany") },
+            ],
+        },
+        {
+            id: "access",
+            label: t("nav.accessSection"),
+            items: [{ id: "user-access", label: t("nav.userAccess") }],
+        },
+        {
+            id: "imports",
+            label: t("nav.importsSection"),
+            items: [{ id: "excel-upload", label: t("nav.excelUpload") }],
+        },
+    ];
+    const pageBreadcrumbs = {
+        home: [t("nav.home")],
+        companies: [t("nav.tablesSection"), t("nav.companies")],
+        "master-products": [t("nav.mastersSection"), t("nav.masterProducts")],
+        "master-agents": [t("nav.mastersSection"), t("nav.masterAgents")],
+        "products-per-company": [t("nav.mappingsSection"), t("nav.productsPerCompany")],
+        "agents-per-company": [t("nav.mappingsSection"), t("nav.agentsPerCompany")],
+        "user-access": [t("nav.accessSection"), t("nav.userAccess")],
+        "excel-upload": [t("nav.importsSection"), t("nav.excelUpload")],
+    };
+    useEffect(() => {
+        setSearchQuery("");
+    }, [currentPage]);
+    const loadCompanyDetailData = async () => {
+        try {
+            const results = await Promise.allSettled([
+                productsPerCompanyApi.list(),
+                agentsPerCompanyApi.list(),
+                masterProductsApi.list(),
+                masterAgentsApi.list(),
+            ]);
+            const resolve = (result) => (result.status === "fulfilled" ? result.value || [] : []);
+            setProductsPerCompany(resolve(results[0]));
+            setAgentsPerCompany(resolve(results[1]));
+            setMasterProducts(resolve(results[2]));
+            setMasterAgents(resolve(results[3]));
+        }
+        catch {
+            // Detail drawer can still render without linked data.
+        }
+    };
+    useEffect(() => {
+        if (drawerPage === "companies") {
+            setProductMappingForm({ master_product_code: "", company_product_name: "" });
+            setAgentMappingForm({ master_agent_code: "", master_product_code: "", comments: "" });
+        }
+    }, [drawerItem, drawerPage]);
+    const handleView = (page, item) => {
+        setDrawerPage(page);
+        setDrawerItem(item);
+        if (page === "companies") {
+            loadCompanyDetailData();
+        }
+    };
+    const closeDrawer = (open) => {
+        if (!open) {
+            setDrawerItem(null);
+            setDrawerPage(null);
+        }
+    };
+    const handleAddCompanyProduct = async () => {
+        if (!drawerItem) return;
+        if (!productMappingForm.master_product_code || !productMappingForm.company_product_name) return;
+        setIsSaving(true);
+        try {
+            await productsPerCompanyApi.create({
+                company_code: drawerItem.company_code,
+                master_product_code: productMappingForm.master_product_code,
+                company_product_name: productMappingForm.company_product_name,
+            });
+            setProductMappingForm({ master_product_code: "", company_product_name: "" });
+            await loadCompanyDetailData();
+            toast.success(t("toasts.productLinkAdded"));
+        }
+        catch (error) {
+            const details = error?.message ? ` ${error.message}` : "";
+            toast.error(t("toasts.productLinkAddFailed") + details);
+        }
+        finally {
+            setIsSaving(false);
+        }
+    };
+    const handleAddCompanyAgent = async () => {
+        if (!drawerItem) return;
+        if (!agentMappingForm.master_agent_code || !agentMappingForm.master_product_code) return;
+        setIsSaving(true);
+        try {
+            await agentsPerCompanyApi.create({
+                company_code: drawerItem.company_code,
+                master_agent_code: agentMappingForm.master_agent_code,
+                master_product_code: agentMappingForm.master_product_code,
+                comments: agentMappingForm.comments,
+            });
+            setAgentMappingForm({ master_agent_code: "", master_product_code: "", comments: "" });
+            await loadCompanyDetailData();
+            toast.success(t("toasts.agentAssignmentAdded"));
+        }
+        catch (error) {
+            const details = error?.message ? ` ${error.message}` : "";
+            toast.error(t("toasts.agentAssignmentAddFailed") + details);
+        }
+        finally {
+            setIsSaving(false);
+        }
+    };
+    const handleHomeAddCompany = () => {
+        setEditingItem(null);
+        setCurrentPage("companies");
+        setIsAddDialogOpen(true);
+    };
+    const handleHomeImport = () => {
+        setCurrentPage("excel-upload");
+    };
     const renderPage = () => {
         switch (currentPage) {
             case "home":
-                return (<HomePage pages={homePages} onNavigate={setCurrentPage} onLogout={onLogout} userEmail={userEmail}/>);
+                return (<HomePage pages={homePages} onNavigate={setCurrentPage} onAddCompany={handleHomeAddCompany} onImport={handleHomeImport} stats={homeStats} lastUpdated={mergedLastUpdated} />);
             case "companies":
                 return (<>
-            <GenericTablePage title={t("tables.companiesTitle")} description={t("tables.companiesDescription")} columns={companyColumns} data={companies} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onDelete={handleDeleteCompany} getItemId={(item) => item.company_code} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel}/>
+            <GenericTablePage title={t("tables.companiesTitle")} description={t("tables.companiesDescription")} columns={companyColumns} data={companies} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("companies", item)} onDelete={handleDeleteCompany} getItemId={(item) => item.company_code} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel} searchQuery={searchQuery} selectedId={drawerPage === "companies" ? drawerItem?.company_code : null}/>
             <CompanyFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddCompany} mode="add"/>
             {editingItem && (<CompanyFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditCompany} mode="edit" initialData={editingItem}/>)}
           </>);
             case "master-products":
                 return (<>
-            <GenericTablePage title={t("tables.masterProductsTitle")} description={t("tables.masterProductsDescription")} columns={masterProductColumns} data={masterProducts} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onDelete={handleDeleteMasterProduct} getItemId={(item) => item.master_product_code} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel}/>
+            <GenericTablePage title={t("tables.masterProductsTitle")} description={t("tables.masterProductsDescription")} columns={masterProductColumns} data={masterProducts} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("master-products", item)} onDelete={handleDeleteMasterProduct} getItemId={(item) => item.master_product_code} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel} searchQuery={searchQuery} selectedId={drawerPage === "master-products" ? drawerItem?.master_product_code : null}/>
             <MasterProductFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddMasterProduct} mode="add"/>
             {editingItem && (<MasterProductFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditMasterProduct} mode="edit" initialData={editingItem}/>)}
           </>);
             case "master-agents":
                 return (<>
-            <GenericTablePage title={t("tables.masterAgentsTitle")} description={t("tables.masterAgentsDescription")} columns={masterAgentColumns} data={masterAgents} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onDelete={handleDeleteMasterAgent} getItemId={(item) => item.master_agent_code} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel}/>
+            <GenericTablePage title={t("tables.masterAgentsTitle")} description={t("tables.masterAgentsDescription")} columns={masterAgentColumns} data={masterAgents} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("master-agents", item)} onDelete={handleDeleteMasterAgent} getItemId={(item) => item.master_agent_code} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel} searchQuery={searchQuery} selectedId={drawerPage === "master-agents" ? drawerItem?.master_agent_code : null}/>
             <MasterAgentFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddMasterAgent} mode="add"/>
             {editingItem && (<MasterAgentFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditMasterAgent} mode="edit" initialData={editingItem}/>)}
           </>);
             case "products-per-company":
                 return (<>
-            <GenericTablePage title={t("tables.productsPerCompanyTitle")} description={t("tables.productsPerCompanyDescription")} columns={productPerCompanyColumns} data={productsPerCompany} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onDelete={handleDeleteProductPerCompany} getItemId={(item) => item.id} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel}/>
+            <GenericTablePage title={t("tables.productsPerCompanyTitle")} description={t("tables.productsPerCompanyDescription")} columns={productPerCompanyColumns} data={normalizedProductsPerCompany} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("products-per-company", item)} onDelete={handleDeleteProductPerCompany} getItemId={(item) => item.id} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel} searchQuery={searchQuery} selectedId={drawerPage === "products-per-company" ? drawerItem?.id : null}/>
             <ProductPerCompanyFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddProductPerCompany} mode="add" companies={companies} masterProducts={masterProducts}/>
             {editingItem && (<ProductPerCompanyFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditProductPerCompany} mode="edit" initialData={editingItem} companies={companies} masterProducts={masterProducts}/>)}
           </>);
             case "agents-per-company":
                 return (<>
-            <GenericTablePage title={t("tables.agentsPerCompanyTitle")} description={t("tables.agentsPerCompanyDescription")} columns={agentPerCompanyColumns} data={agentsPerCompany} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onDelete={handleDeleteAgentPerCompany} getItemId={(item) => item.id} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel}/>
-            <AgentPerCompanyFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddAgentPerCompany} mode="add" companies={companies} masterAgents={masterAgents} masterProducts={masterProducts}/>
-            {editingItem && (<AgentPerCompanyFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditAgentPerCompany} mode="edit" initialData={editingItem} companies={companies} masterAgents={masterAgents} masterProducts={masterProducts}/>)}
+            <GenericTablePage title={t("tables.agentsPerCompanyTitle")} description={t("tables.agentsPerCompanyDescription")} columns={agentPerCompanyColumns} data={normalizedAgentsPerCompany} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("agents-per-company", item)} onDelete={handleDeleteAgentPerCompany} getItemId={(item) => item.id} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel} searchQuery={searchQuery} selectedId={drawerPage === "agents-per-company" ? drawerItem?.id : null}/>
+            <AgentPerCompanyFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddAgentPerCompany} mode="add" companies={companies} masterAgents={masterAgents} masterProducts={masterProducts} productsPerCompany={productsPerCompany}/>
+            {editingItem && (<AgentPerCompanyFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditAgentPerCompany} mode="edit" initialData={editingItem} companies={companies} masterAgents={masterAgents} masterProducts={masterProducts} productsPerCompany={productsPerCompany}/>)}
           </>);
             case "user-access":
                 return (<>
-            <GenericTablePage title={t("tables.userAccessTitle")} description={t("tables.userAccessDescription")} columns={userAccessColumns} data={userAccess} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onDelete={handleDeleteUserAccess} getItemId={(item) => item.id} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel}/>
+            <GenericTablePage title={t("tables.userAccessTitle")} description={t("tables.userAccessDescription")} columns={userAccessColumns} data={userAccess} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("user-access", item)} onDelete={handleDeleteUserAccess} getItemId={(item) => item.id} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel} searchQuery={searchQuery} selectedId={drawerPage === "user-access" ? drawerItem?.id : null}/>
             <UserAccessFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddUserAccess} mode="add"/>
             {editingItem && (<UserAccessFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditUserAccess} mode="edit" initialData={editingItem}/>)}
           </>);
@@ -861,8 +1100,193 @@ export function DatabaseManager({ userEmail, onLogout }) {
                 return null;
         }
     };
-    return (<div className="min-h-screen bg-gray-50">
-      {currentPage !== "home" ? (<TopNavigation currentPage={currentPage} onNavigate={setCurrentPage} onLogout={onLogout} userEmail={userEmail}/>) : null}
-      {renderPage()}
-    </div>);
+    const drawerColumnsMap = {
+        companies: companyColumns,
+        "master-products": masterProductColumns,
+        "master-agents": masterAgentColumns,
+        "products-per-company": productPerCompanyColumns,
+        "agents-per-company": agentPerCompanyColumns,
+        "user-access": userAccessColumns,
+    };
+    const drawerTitleMap = {
+        companies: t("tables.companiesTitle"),
+        "master-products": t("tables.masterProductsTitle"),
+        "master-agents": t("tables.masterAgentsTitle"),
+        "products-per-company": t("tables.productsPerCompanyTitle"),
+        "agents-per-company": t("tables.agentsPerCompanyTitle"),
+        "user-access": t("tables.userAccessTitle"),
+    };
+    const masterProductMap = new Map(masterProducts.map((product) => [product.master_product_code, product.master_product_name]));
+    const masterAgentMap = new Map(masterAgents.map((agent) => [agent.master_agent_code, agent.full_agent_name]));
+    const companyLinkedContent = (() => {
+        if (drawerPage !== "companies" || !drawerItem) return null;
+        const companyProducts = productsPerCompany.filter((product) => product.company_code === drawerItem.company_code);
+        const companyAgents = agentsPerCompany.filter((agent) => agent.company_code === drawerItem.company_code);
+        return (
+            <div className="flex flex-col gap-6">
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <div className="text-sm font-semibold text-slate-900">{t("drawer.productsTab")}</div>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                        <select
+                            value={productMappingForm.master_product_code}
+                            onChange={(event) => setProductMappingForm((prev) => ({ ...prev, master_product_code: event.target.value }))}
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                        >
+                            <option value="">{t("drawer.selectMasterProduct")}</option>
+                            {masterProducts.map((product) => (
+                                <option key={product.master_product_code} value={product.master_product_code}>
+                                    {product.master_product_name || product.master_product_code}
+                                </option>
+                            ))}
+                        </select>
+                        <input
+                            value={productMappingForm.company_product_name}
+                            onChange={(event) => setProductMappingForm((prev) => ({ ...prev, company_product_name: event.target.value }))}
+                            placeholder={t("drawer.companyProductName")}
+                            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                        />
+                        <button
+                            type="button"
+                            onClick={handleAddCompanyProduct}
+                            disabled={isSaving}
+                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 md:col-span-2"
+                        >
+                            {t("drawer.addMapping")}
+                        </button>
+                    </div>
+                    <div className="mt-4 divide-y divide-slate-100">
+                        {companyProducts.length ? (
+                            companyProducts.map((product) => (
+                                <div key={product.id} className="flex items-center justify-between py-2 text-sm text-slate-700">
+                                    <div>
+                                        <div className="font-semibold text-slate-800">
+                                            {product.master_product?.master_product_name ||
+                                                masterProductMap.get(product.master_product_code) ||
+                                                product.master_product_code}
+                                        </div>
+                                        <div className="text-xs text-slate-500">{product.company_product_name}</div>
+                                    </div>
+                                    <div className="text-xs text-slate-400">{product.master_product_code}</div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="py-3 text-sm text-slate-500">{t("drawer.noMappings")}</div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <div className="text-sm font-semibold text-slate-900">{t("drawer.agentsTab")}</div>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                        <select
+                            value={agentMappingForm.master_agent_code}
+                            onChange={(event) => setAgentMappingForm((prev) => ({ ...prev, master_agent_code: event.target.value }))}
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                        >
+                            <option value="">{t("drawer.selectMasterAgent")}</option>
+                            {masterAgents.map((agent) => (
+                                <option key={agent.master_agent_code} value={agent.master_agent_code}>
+                                    {agent.full_agent_name || agent.master_agent_code}
+                                </option>
+                            ))}
+                        </select>
+                        <select
+                            value={agentMappingForm.master_product_code}
+                            onChange={(event) => setAgentMappingForm((prev) => ({ ...prev, master_product_code: event.target.value }))}
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                        >
+                            <option value="">{t("drawer.selectMasterProduct")}</option>
+                            {masterProducts.map((product) => (
+                                <option key={product.master_product_code} value={product.master_product_code}>
+                                    {product.master_product_name || product.master_product_code}
+                                </option>
+                            ))}
+                        </select>
+                        <input
+                            value={agentMappingForm.comments}
+                            onChange={(event) => setAgentMappingForm((prev) => ({ ...prev, comments: event.target.value }))}
+                            placeholder={t("drawer.comments")}
+                            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                        />
+                        <button
+                            type="button"
+                            onClick={handleAddCompanyAgent}
+                            disabled={isSaving}
+                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 md:col-span-2"
+                        >
+                            {t("drawer.addMapping")}
+                        </button>
+                    </div>
+                    <div className="mt-4 divide-y divide-slate-100">
+                        {companyAgents.length ? (
+                            companyAgents.map((agent) => (
+                                <div key={agent.id} className="flex items-center justify-between py-2 text-sm text-slate-700">
+                                    <div>
+                                        <div className="font-semibold text-slate-800">
+                                            {agent.master_agent?.full_agent_name ||
+                                                masterAgentMap.get(agent.master_agent_code) ||
+                                                agent.master_agent_code}
+                                        </div>
+                                        <div className="text-xs text-slate-500">
+                                            {agent.master_product?.master_product_name ||
+                                                masterProductMap.get(agent.master_product_code) ||
+                                                agent.master_product_code}
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-slate-400">{agent.comments || "-"}</div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="py-3 text-sm text-slate-500">{t("drawer.noMappings")}</div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    })();
+    const resolveUserName = (user) => {
+        if (!user) return null;
+        return user.full_name || user.email || user.id || null;
+    };
+    const historyFields = drawerItem
+        ? [
+              { label: t("columns.created"), value: drawerItem.created_at },
+              { label: t("columns.updated"), value: drawerItem.updated_at },
+              { label: t("columns.createdBy"), value: resolveUserName(drawerItem.created_by_user) || drawerItem.created_by },
+              { label: t("columns.updatedBy"), value: resolveUserName(drawerItem.updated_by_user) || drawerItem.updated_by },
+          ].filter((field) => field.value)
+        : [];
+    return (
+        <AppShell
+            navSections={navSections}
+            currentPage={currentPage}
+            onNavigate={setCurrentPage}
+            userEmail={userEmail}
+            onLogout={onLogout}
+            breadcrumb={pageBreadcrumbs[currentPage] || [t("nav.home")]}
+            searchQuery={currentPage === "home" || currentPage === "excel-upload" ? undefined : searchQuery}
+            onSearchChange={currentPage === "home" || currentPage === "excel-upload" ? undefined : setSearchQuery}
+            hideSidebar={currentPage === "home"}
+        >
+            {renderPage()}
+            <RecordDrawer
+                open={!!drawerItem}
+                onOpenChange={closeDrawer}
+                title={drawerTitleMap[drawerPage] || ""}
+                columns={drawerPage ? drawerColumnsMap[drawerPage] || [] : []}
+                item={drawerItem}
+                linkedContent={companyLinkedContent}
+                historyFields={historyFields}
+                onEdit={
+                    drawerItem
+                        ? () => {
+                              setEditingItem(drawerItem);
+                              setDrawerItem(null);
+                              setDrawerPage(null);
+                          }
+                        : null
+                }
+            />
+        </AppShell>
+    );
 }
