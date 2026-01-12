@@ -1006,7 +1006,10 @@ export function DatabaseManager({ userEmail, onLogout }) {
     };
     const handleAddCompanyProduct = async () => {
         if (!drawerItem) return;
-        if (!productMappingForm.master_product_code || !productMappingForm.company_product_name) return;
+        if (!productMappingForm.master_product_code || !productMappingForm.company_product_name) {
+            toast.error(t("drawer.requiredFields"));
+            return;
+        }
         setIsSaving(true);
         try {
             await productsPerCompanyApi.create({
@@ -1045,7 +1048,10 @@ export function DatabaseManager({ userEmail, onLogout }) {
     };
     const handleAddCompanyAgent = async () => {
         if (!drawerItem) return;
-        if (!agentMappingForm.master_agent_code || !agentMappingForm.master_product_code) return;
+        if (!agentMappingForm.master_agent_code || !agentMappingForm.master_product_code) {
+            toast.error(t("drawer.requiredFields"));
+            return;
+        }
         setIsSaving(true);
         try {
             await agentsPerCompanyApi.create({
@@ -1199,7 +1205,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
                         <button
                             type="button"
                             onClick={handleAddCompanyProduct}
-                            disabled={isSaving}
+                            disabled={isSaving || !productMappingForm.master_product_code || !productMappingForm.company_product_name}
                             className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 md:col-span-2"
                         >
                             {t("drawer.addMapping")}
@@ -1282,7 +1288,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
                         <button
                             type="button"
                             onClick={handleAddCompanyAgent}
-                            disabled={isSaving}
+                            disabled={isSaving || !agentMappingForm.master_agent_code || !agentMappingForm.master_product_code}
                             className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 md:col-span-2"
                         >
                             {t("drawer.addMapping")}
