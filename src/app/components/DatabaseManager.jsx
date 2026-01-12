@@ -14,6 +14,7 @@ import { useI18n } from "../i18n/i18n";
 import { ExcelUploadPage } from "./ExcelUploadPage";
 import { downloadExcelData, downloadExcelTemplateWorkbook, parseSheetRows, readExcelWorkbook } from "../utils/excel";
 import { RecordDrawer } from "./RecordDrawer";
+import { SearchableSelect } from "./ui/SearchableSelect";
 export function DatabaseManager({ userEmail, onLogout }) {
     const { t } = useI18n();
     const [currentPage, setCurrentPage] = useState("home");
@@ -587,6 +588,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
         });
     };
     const handleDeleteCompany = (company) => {
+        if (!window.confirm(t("common.confirmDelete"))) return;
         setIsSaving(true);
         companiesApi
             .remove(company.company_code)
@@ -641,6 +643,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
         });
     };
     const handleDeleteMasterProduct = (product) => {
+        if (!window.confirm(t("common.confirmDelete"))) return;
         setIsSaving(true);
         masterProductsApi
             .remove(product.master_product_code)
@@ -695,6 +698,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
         });
     };
     const handleDeleteMasterAgent = (agent) => {
+        if (!window.confirm(t("common.confirmDelete"))) return;
         setIsSaving(true);
         masterAgentsApi
             .remove(agent.master_agent_code)
@@ -749,6 +753,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
         });
     };
     const handleDeleteProductPerCompany = (product) => {
+        if (!window.confirm(t("common.confirmDelete"))) return;
         setIsSaving(true);
         productsPerCompanyApi
             .remove(product.id)
@@ -803,6 +808,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
         });
     };
     const handleDeleteAgentPerCompany = (agent) => {
+        if (!window.confirm(t("common.confirmDelete"))) return;
         setIsSaving(true);
         agentsPerCompanyApi
             .remove(agent.id)
@@ -857,6 +863,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
         });
     };
     const handleDeleteUserAccess = (user) => {
+        if (!window.confirm(t("common.confirmDelete"))) return;
         setIsSaving(true);
         userAccessApi
             .remove(user.id)
@@ -1019,6 +1026,23 @@ export function DatabaseManager({ userEmail, onLogout }) {
             setIsSaving(false);
         }
     };
+    const handleDeleteCompanyProductMapping = async (product) => {
+        if (!product?.id) return;
+        if (!window.confirm(t("common.confirmDelete"))) return;
+        setIsSaving(true);
+        try {
+            await productsPerCompanyApi.remove(product.id);
+            await loadCompanyDetailData();
+            toast.success(t("toasts.productLinkDeleted"));
+        }
+        catch (error) {
+            const details = error?.message ? ` ${error.message}` : "";
+            toast.error(t("toasts.productLinkDeleteFailed") + details);
+        }
+        finally {
+            setIsSaving(false);
+        }
+    };
     const handleAddCompanyAgent = async () => {
         if (!drawerItem) return;
         if (!agentMappingForm.master_agent_code || !agentMappingForm.master_product_code) return;
@@ -1037,6 +1061,23 @@ export function DatabaseManager({ userEmail, onLogout }) {
         catch (error) {
             const details = error?.message ? ` ${error.message}` : "";
             toast.error(t("toasts.agentAssignmentAddFailed") + details);
+        }
+        finally {
+            setIsSaving(false);
+        }
+    };
+    const handleDeleteCompanyAgentMapping = async (agent) => {
+        if (!agent?.id) return;
+        if (!window.confirm(t("common.confirmDelete"))) return;
+        setIsSaving(true);
+        try {
+            await agentsPerCompanyApi.remove(agent.id);
+            await loadCompanyDetailData();
+            toast.success(t("toasts.agentAssignmentDeleted"));
+        }
+        catch (error) {
+            const details = error?.message ? ` ${error.message}` : "";
+            toast.error(t("toasts.agentAssignmentDeleteFailed") + details);
         }
         finally {
             setIsSaving(false);
@@ -1127,24 +1168,34 @@ export function DatabaseManager({ userEmail, onLogout }) {
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <div className="text-sm font-semibold text-slate-900">{t("drawer.productsTab")}</div>
                     <div className="mt-3 grid gap-3 md:grid-cols-2">
-                        <select
-                            value={productMappingForm.master_product_code}
-                            onChange={(event) => setProductMappingForm((prev) => ({ ...prev, master_product_code: event.target.value }))}
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                        >
-                            <option value="">{t("drawer.selectMasterProduct")}</option>
-                            {masterProducts.map((product) => (
-                                <option key={product.master_product_code} value={product.master_product_code}>
-                                    {product.master_product_name || product.master_product_code}
-                                </option>
-                            ))}
-                        </select>
-                        <input
-                            value={productMappingForm.company_product_name}
-                            onChange={(event) => setProductMappingForm((prev) => ({ ...prev, company_product_name: event.target.value }))}
-                            placeholder={t("drawer.companyProductName")}
-                            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                        />
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold text-slate-500">
+                                {t("drawer.selectMasterProduct")} <span className="text-rose-500">*</span>
+                            </label>
+                            <SearchableSelect
+                                value={productMappingForm.master_product_code}
+                                onChange={(value) => setProductMappingForm((prev) => ({ ...prev, master_product_code: value }))}
+                                options={masterProducts.map((product) => ({
+                                    value: product.master_product_code,
+                                    label: product.master_product_name || product.master_product_code,
+                                    subLabel: product.master_product_code,
+                                    searchValue: `${product.master_product_name || ""} ${product.master_product_code || ""}`.trim(),
+                                }))}
+                                placeholder={t("drawer.selectMasterProduct")}
+                                emptyText={t("common.noResults")}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold text-slate-500">
+                                {t("drawer.companyProductName")} <span className="text-rose-500">*</span>
+                            </label>
+                            <input
+                                value={productMappingForm.company_product_name}
+                                onChange={(event) => setProductMappingForm((prev) => ({ ...prev, company_product_name: event.target.value }))}
+                                placeholder={t("drawer.companyProductName")}
+                                className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                            />
+                        </div>
                         <button
                             type="button"
                             onClick={handleAddCompanyProduct}
@@ -1157,7 +1208,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
                     <div className="mt-4 divide-y divide-slate-100">
                         {companyProducts.length ? (
                             companyProducts.map((product) => (
-                                <div key={product.id} className="flex items-center justify-between py-2 text-sm text-slate-700">
+                                <div key={product.id} className="flex items-center justify-between gap-4 py-2 text-sm text-slate-700">
                                     <div>
                                         <div className="font-semibold text-slate-800">
                                             {product.master_product?.master_product_name ||
@@ -1166,7 +1217,17 @@ export function DatabaseManager({ userEmail, onLogout }) {
                                         </div>
                                         <div className="text-xs text-slate-500">{product.company_product_name}</div>
                                     </div>
-                                    <div className="text-xs text-slate-400">{product.master_product_code}</div>
+                                    <div className="flex flex-col items-end gap-1 text-xs text-slate-400">
+                                        <span>{product.master_product_code}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteCompanyProductMapping(product)}
+                                            disabled={isSaving}
+                                            className="text-xs font-semibold text-rose-600 hover:text-rose-700 disabled:opacity-60"
+                                        >
+                                            {t("common.delete")}
+                                        </button>
+                                    </div>
                                 </div>
                             ))
                         ) : (
@@ -1178,30 +1239,40 @@ export function DatabaseManager({ userEmail, onLogout }) {
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <div className="text-sm font-semibold text-slate-900">{t("drawer.agentsTab")}</div>
                     <div className="mt-3 grid gap-3 md:grid-cols-2">
-                        <select
-                            value={agentMappingForm.master_agent_code}
-                            onChange={(event) => setAgentMappingForm((prev) => ({ ...prev, master_agent_code: event.target.value }))}
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                        >
-                            <option value="">{t("drawer.selectMasterAgent")}</option>
-                            {masterAgents.map((agent) => (
-                                <option key={agent.master_agent_code} value={agent.master_agent_code}>
-                                    {agent.full_agent_name || agent.master_agent_code}
-                                </option>
-                            ))}
-                        </select>
-                        <select
-                            value={agentMappingForm.master_product_code}
-                            onChange={(event) => setAgentMappingForm((prev) => ({ ...prev, master_product_code: event.target.value }))}
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                        >
-                            <option value="">{t("drawer.selectMasterProduct")}</option>
-                            {masterProducts.map((product) => (
-                                <option key={product.master_product_code} value={product.master_product_code}>
-                                    {product.master_product_name || product.master_product_code}
-                                </option>
-                            ))}
-                        </select>
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold text-slate-500">
+                                {t("drawer.selectMasterAgent")} <span className="text-rose-500">*</span>
+                            </label>
+                            <SearchableSelect
+                                value={agentMappingForm.master_agent_code}
+                                onChange={(value) => setAgentMappingForm((prev) => ({ ...prev, master_agent_code: value }))}
+                                options={masterAgents.map((agent) => ({
+                                    value: agent.master_agent_code,
+                                    label: agent.full_agent_name || agent.master_agent_code,
+                                    subLabel: agent.master_agent_code,
+                                    searchValue: `${agent.full_agent_name || ""} ${agent.master_agent_code || ""}`.trim(),
+                                }))}
+                                placeholder={t("drawer.selectMasterAgent")}
+                                emptyText={t("common.noResults")}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold text-slate-500">
+                                {t("drawer.selectMasterProduct")} <span className="text-rose-500">*</span>
+                            </label>
+                            <SearchableSelect
+                                value={agentMappingForm.master_product_code}
+                                onChange={(value) => setAgentMappingForm((prev) => ({ ...prev, master_product_code: value }))}
+                                options={masterProducts.map((product) => ({
+                                    value: product.master_product_code,
+                                    label: product.master_product_name || product.master_product_code,
+                                    subLabel: product.master_product_code,
+                                    searchValue: `${product.master_product_name || ""} ${product.master_product_code || ""}`.trim(),
+                                }))}
+                                placeholder={t("drawer.selectMasterProduct")}
+                                emptyText={t("common.noResults")}
+                            />
+                        </div>
                         <input
                             value={agentMappingForm.comments}
                             onChange={(event) => setAgentMappingForm((prev) => ({ ...prev, comments: event.target.value }))}
@@ -1220,7 +1291,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
                     <div className="mt-4 divide-y divide-slate-100">
                         {companyAgents.length ? (
                             companyAgents.map((agent) => (
-                                <div key={agent.id} className="flex items-center justify-between py-2 text-sm text-slate-700">
+                                <div key={agent.id} className="flex items-center justify-between gap-4 py-2 text-sm text-slate-700">
                                     <div>
                                         <div className="font-semibold text-slate-800">
                                             {agent.master_agent?.full_agent_name ||
@@ -1233,7 +1304,17 @@ export function DatabaseManager({ userEmail, onLogout }) {
                                                 agent.master_product_code}
                                         </div>
                                     </div>
-                                    <div className="text-xs text-slate-400">{agent.comments || "-"}</div>
+                                    <div className="flex flex-col items-end gap-1 text-xs text-slate-400">
+                                        <span>{agent.comments || "-"}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteCompanyAgentMapping(agent)}
+                                            disabled={isSaving}
+                                            className="text-xs font-semibold text-rose-600 hover:text-rose-700 disabled:opacity-60"
+                                        >
+                                            {t("common.delete")}
+                                        </button>
+                                    </div>
                                 </div>
                             ))
                         ) : (
