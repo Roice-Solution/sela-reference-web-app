@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { DatabaseManager } from "./components/DatabaseManager";
 import { LoginPage } from "./components/LoginPage";
 import { Toaster, toast } from "sonner";
@@ -43,17 +43,7 @@ function AppContent() {
             sessionTimerRef.current = null;
         }
     };
-    const scheduleSessionExpiry = (startTime) => {
-        if (!startTime) return;
-        const remaining = MAX_SESSION_AGE_MS - (Date.now() - startTime);
-        if (remaining <= 0) {
-            handleSessionExpiry();
-            return;
-        }
-        clearSessionTimer();
-        sessionTimerRef.current = setTimeout(handleSessionExpiry, remaining);
-    };
-    const handleSessionExpiry = async () => {
+    const handleSessionExpiry = useCallback(async () => {
         clearSessionTimer();
         if (typeof window !== "undefined") {
             window.localStorage.removeItem(SESSION_START_KEY);
@@ -67,7 +57,17 @@ function AppContent() {
         setIsAuthenticated(false);
         setUserEmail("");
         toast.error(t("toasts.sessionExpired"));
-    };
+    }, [t]);
+    const scheduleSessionExpiry = useCallback((startTime) => {
+        if (!startTime) return;
+        const remaining = MAX_SESSION_AGE_MS - (Date.now() - startTime);
+        if (remaining <= 0) {
+            handleSessionExpiry();
+            return;
+        }
+        clearSessionTimer();
+        sessionTimerRef.current = setTimeout(handleSessionExpiry, remaining);
+    }, [handleSessionExpiry]);
     useEffect(() => {
         const loadSession = async () => {
             try {

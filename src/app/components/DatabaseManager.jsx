@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { AppShell } from "./AppShell";
 import { HomePage } from "./HomePage";
 import { GenericTablePage } from "./GenericTablePage";
@@ -352,7 +352,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
             data: userAccess,
             upload: (rows) => userAccessApi.create(rows),
         },
-    }), [agentPerCompanyColumns, companies, companyColumns, masterAgentColumns, masterAgents, masterProductColumns, masterProducts, productsPerCompany, productPerCompanyColumns, t, userAccess, userAccessColumns, normalizedAgentsPerCompany, normalizedProductsPerCompany]);
+    }), [companies, masterAgents, masterProducts, productsPerCompany, t, userAccess, normalizedAgentsPerCompany, normalizedProductsPerCompany]);
     const handleDownloadTemplate = () => {
         const sheets = Object.values(excelConfig).map((config) => ({
             sheetName: config.sheetName,
@@ -435,7 +435,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
     const handleCancelUpload = () => {
         setPendingUploads(null);
     };
-    const loadForPage = async (page) => {
+    const loadForPage = useCallback(async (page) => {
         setIsLoading(true);
         try {
             const getValue = (result, label) => {
@@ -484,7 +484,9 @@ export function DatabaseManager({ userEmail, onLogout }) {
                 }
                 case "companies": {
                     const result = await Promise.allSettled([companiesApi.list()]);
-                    setCompanies(getValue(result[0], t("tables.companiesTitle")));
+                    const companiesData = getValue(result[0], t("tables.companiesTitle"));
+                    console.log('Loading companies:', companiesData);
+                    setCompanies(companiesData);
                     break;
                 }
                 case "master-products": {
@@ -536,7 +538,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
         finally {
             setIsLoading(false);
         }
-    };
+    }, [t]);
     useEffect(() => {
         let isMounted = true;
         const loadCurrentPage = async () => {
