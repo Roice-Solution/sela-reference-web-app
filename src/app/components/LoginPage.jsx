@@ -25,14 +25,19 @@ export function LoginPage({ onLogin, isLoading }) {
             onLogin(email, password);
         }
     };
-    return (<div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center p-4">
-      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden flex">
+    return (<div className="relative min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 flex items-center justify-center p-4 overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-gradient-to-br from-blue-400/20 to-cyan-400/20 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-gradient-to-br from-indigo-400/20 to-purple-400/20 blur-3xl" />
+      </div>
+      <div className="relative w-full max-w-5xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex transition-all duration-300 hover:shadow-3xl">
         <div className="hidden lg:block lg:w-1/2 relative">
           <ImageWithFallback src={loginHero} alt="Login illustration" className="w-full h-full object-cover"/>
-          <div className="absolute inset-0 bg-gradient-to-t from-blue-900/90 to-blue-900/20 flex items-end p-8">
+          <div className="absolute inset-0 bg-gradient-to-t from-indigo-900/90 to-indigo-900/20 flex items-end p-8">
             <div className="text-white">
               <h3 className="text-2xl font-bold mb-2">{t("auth.leftTitle")}</h3>
-              <p className="text-blue-100">{t("auth.leftSubtitle")}</p>
+              <p className="text-indigo-100">{t("auth.leftSubtitle")}</p>
             </div>
           </div>
         </div>
@@ -51,10 +56,10 @@ export function LoginPage({ onLogin, isLoading }) {
           </div>
           <div className="space-y-6 mt-4">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 bg-gradient-to-br from-indigo-600 to-cyan-500">
                 <span className="text-white text-2xl font-bold">SELA</span>
               </div>
-              <h2 className="text-2xl font-bold text-blue-900">{t("auth.title")}</h2>
+              <h2 className="text-2xl font-bold text-slate-900">{t("auth.title")}</h2>
               <p className="text-gray-600 mt-2">{t("auth.subtitle")}</p>
             </div>
 
@@ -64,8 +69,8 @@ export function LoginPage({ onLogin, isLoading }) {
                   {t("auth.email")}
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400"/>
-                  <input id="email" type="email" placeholder={t("auth.emailPlaceholder")} value={email} onChange={(e) => setEmail(e.target.value)} className={`w-full pl-10 pr-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.email ? "border-red-500" : "border-gray-200"}`} disabled={isLoading}/>
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-500"/>
+                  <input id="email" type="email" placeholder={t("auth.emailPlaceholder")} value={email} onChange={(e) => setEmail(e.target.value)} className={`w-full pl-10 pr-3 py-2.5 border rounded-lg focus-brand ${errors.email ? "border-red-500" : "border-gray-200"}`} disabled={isLoading}/>
                 </div>
                 {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
               </div>
@@ -75,13 +80,13 @@ export function LoginPage({ onLogin, isLoading }) {
                   {t("auth.password")}
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400"/>
-                  <input id="password" type="password" placeholder={t("auth.passwordPlaceholder")} value={password} onChange={(e) => setPassword(e.target.value)} className={`w-full pl-10 pr-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.password ? "border-red-500" : "border-gray-200"}`} disabled={isLoading}/>
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-500"/>
+                  <input id="password" type="password" placeholder={t("auth.passwordPlaceholder")} value={password} onChange={(e) => setPassword(e.target.value)} className={`w-full pl-10 pr-3 py-2.5 border rounded-lg focus-brand ${errors.password ? "border-red-500" : "border-gray-200"}`} disabled={isLoading}/>
                 </div>
                 {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
               </div>
 
-              <button type="submit" className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-all font-medium shadow-lg hover:shadow-xl disabled:opacity-50" disabled={isLoading}>
+              <button type="submit" className="w-full btn-primary py-3 transition-all duration-200 shadow-lg hover:scale-105 hover:shadow-2xl active:scale-95" disabled={isLoading}>
                 {isLoading ? t("auth.signingIn") : t("auth.signIn")}
               </button>
             </form>

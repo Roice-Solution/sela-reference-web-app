@@ -44,7 +44,7 @@ export function MasterProductFormDialog({ open, onOpenChange, onSave, mode, init
                     <button type="button" onClick={() => onOpenChange(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-100">
                         {t("common.cancel")}
                     </button>
-                    <button type="submit" form={formId} className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
+                    <button type="submit" form={formId} className="btn-primary">
                         {mode === "add" ? t("forms.masterProduct.add") : t("common.saveChanges")}
                     </button>
                 </>
@@ -53,22 +53,22 @@ export function MasterProductFormDialog({ open, onOpenChange, onSave, mode, init
             <form id={formId} onSubmit={handleSubmit} className="flex flex-col gap-4">
             {mode === "edit" && (<div className="space-y-2">
                 <label htmlFor="master_product_code" className="block text-sm font-medium text-gray-700">{t("forms.masterProduct.productCode")}</label>
-                <input id="master_product_code" value={formData.master_product_code} onChange={(e) => setFormData({ ...formData, master_product_code: e.target.value })} required disabled className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"/>
+                <input id="master_product_code" value={formData.master_product_code} onChange={(e) => setFormData({ ...formData, master_product_code: e.target.value })} required disabled className="w-full px-3 py-2 border border-gray-200 rounded-lg focus-brand disabled:bg-gray-100"/>
               </div>)}
 
             <div className="space-y-2">
               <label htmlFor="master_product_name" className="block text-sm font-medium text-gray-700">{t("forms.masterProduct.productName")}</label>
-              <input id="master_product_name" value={formData.master_product_name} onChange={(e) => setFormData({ ...formData, master_product_name: e.target.value })} required className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"/>
+              <input id="master_product_name" value={formData.master_product_name} onChange={(e) => setFormData({ ...formData, master_product_name: e.target.value })} required className="w-full px-3 py-2 border border-gray-200 rounded-lg focus-brand"/>
             </div>
 
             <div className="space-y-2">
               <label htmlFor="department_name" className="block text-sm font-medium text-gray-700">{t("forms.masterProduct.departmentName")}</label>
-              <input id="department_name" value={formData.department_name} onChange={(e) => setFormData({ ...formData, department_name: e.target.value })} required className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"/>
+              <input id="department_name" value={formData.department_name} onChange={(e) => setFormData({ ...formData, department_name: e.target.value })} required className="w-full px-3 py-2 border border-gray-200 rounded-lg focus-brand"/>
             </div>
 
             <div className="space-y-2">
               <label htmlFor="master_product_category" className="block text-sm font-medium text-gray-700">{t("forms.masterProduct.productCategory")}</label>
-              <input id="master_product_category" value={formData.master_product_category} onChange={(e) => setFormData({ ...formData, master_product_category: e.target.value })} required className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"/>
+              <input id="master_product_category" value={formData.master_product_category} onChange={(e) => setFormData({ ...formData, master_product_category: e.target.value })} required className="w-full px-3 py-2 border border-gray-200 rounded-lg focus-brand"/>
             </div>
             </form>
         </ModalShell>

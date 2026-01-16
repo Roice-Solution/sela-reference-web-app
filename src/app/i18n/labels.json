@@ -3,7 +3,9 @@
     "app": {
       "name": "Reference Table Manager",
       "subtitle": "Reporting Project",
-      "shortName": "Reference Manager"
+      "shortName": "Reference Manager",
+      "bannerLeft": "SELA Insurance • Admin Console",
+      "bannerRight": "Environment: UAT"
     },
     "language": {
       "label": "Language",
@@ -18,6 +20,9 @@
       "gridTitle": "Pick a tab",
       "gridSubtitle": "Each box opens a table for managing data.",
       "openWorkspace": "Open tab",
+      "bannerEyebrow": "SELA Insurance",
+      "bannerTitleAdmin": "Reference Tables Admin Console",
+      "bannerDescription": "Manage companies, products, agents and access with audit-ready controls.",
       "dashboardTitle": "Dashboard",
       "dashboardSubtitle": "Manage companies, products, agents, and access.",
       "addCompany": "Add Company",
@@ -353,7 +358,9 @@
     "app": {
       "name": "מנהל טבלאות ייחוס",
       "subtitle": "פרויקט דיווח",
-      "shortName": "מנהל ייחוס"
+      "shortName": "מנהל ייחוס",
+      "bannerLeft": "SELA ביטוח • מסוף ניהול",
+      "bannerRight": "סביבה: UAT"
     },
     "language": {
       "label": "שפה",
@@ -368,6 +375,9 @@
       "gridTitle": "בחר לשונית",
       "gridSubtitle": "כל תיבה פותחת טבלה לניהול נתונים.",
       "openWorkspace": "פתח לשונית",
+      "bannerEyebrow": "SELA ביטוח",
+      "bannerTitleAdmin": "מסוף ניהול טבלאות ייחוס",
+      "bannerDescription": "ניהול חברות, מוצרים, סוכנים והרשאות עם בקרות בקרה.",
       "dashboardTitle": "דשבורד",
       "dashboardSubtitle": "ניהול חברות, מוצרים, סוכנים והרשאות.",
       "addCompany": "הוסף חברה",

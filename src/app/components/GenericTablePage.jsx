@@ -26,6 +26,7 @@ export function GenericTablePage({
     const [visibleColumnKeys, setVisibleColumnKeys] = useState(() => new Set(columns.map((col) => col.key)));
     const [sortKey, setSortKey] = useState(null);
     const [sortDirection, setSortDirection] = useState("asc");
+    const [columnFilters, setColumnFilters] = useState({});
 
     useEffect(() => {
         setVisibleColumnKeys(new Set(columns.map((col) => col.key)));
@@ -71,11 +72,23 @@ export function GenericTablePage({
         );
     }, [data, safeQuery, searchableColumns]);
 
+    const filteredByColumns = useMemo(() => {
+        const activeFilters = Object.entries(columnFilters).filter(([, value]) => value && String(value).trim());
+        if (!activeFilters.length) return filteredData;
+        return filteredData.filter((item) =>
+            activeFilters.every(([key, filterValue]) => {
+                const value = item[key];
+                if (value === null || value === undefined) return false;
+                return String(value).toLowerCase().includes(String(filterValue).toLowerCase().trim());
+            })
+        );
+    }, [columnFilters, filteredData]);
+
     const sortedData = useMemo(() => {
-        if (!sortKey) return filteredData;
+        if (!sortKey) return filteredByColumns;
         const col = columns.find((item) => item.key === sortKey);
         const type = col?.type;
-        const sorted = [...filteredData].sort((a, b) => {
+        const sorted = [...filteredByColumns].sort((a, b) => {
             const aValue = getSortValue(a[sortKey], type);
             const bValue = getSortValue(b[sortKey], type);
             if (aValue === null && bValue === null) return 0;
@@ -87,19 +100,22 @@ export function GenericTablePage({
             return String(aValue).localeCompare(String(bValue));
         });
         return sortDirection === "asc" ? sorted : sorted.reverse();
-    }, [columns, filteredData, sortDirection, sortKey]);
+    }, [columns, filteredByColumns, sortDirection, sortKey]);
 
     const visibleColumns = useMemo(
         () => columns.filter((col) => visibleColumnKeys.has(col.key)),
         [columns, visibleColumnKeys]
     );
+    const handleColumnFilterChange = (key, value) => {
+        setColumnFilters((prev) => ({ ...prev, [key]: value }));
+    };
 
     const actions = (
         <>
             <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
-                    <button type="button" className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                        <Columns2 className="h-4 w-4 text-slate-500" />
+                    <button type="button" className="group flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:shadow-md">
+                        <Columns2 className="h-4 w-4 text-slate-500 transition-colors group-hover:text-blue-600" />
                         {t("tables.columns")}
                     </button>
                 </DropdownMenu.Trigger>
@@ -157,8 +173,8 @@ export function GenericTablePage({
             {onDownloadExcel ? (
                 <button
                     type="button"
-                    onClick={onDownloadExcel}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                    onClick={() => onDownloadExcel(sortedData)}
+                    className="group flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-gradient-to-br hover:from-emerald-50 hover:to-teal-50 hover:shadow-md"
                 >
                     {t("excel.download")}
                 </button>
@@ -166,7 +182,7 @@ export function GenericTablePage({
             <button
                 onClick={onAdd}
                 disabled={isLoading || isSaving}
-                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+                className="ripple flex items-center gap-2 btn-primary"
             >
                 <Plus className="h-4 w-4" />
                 {t("common.addEntry")}
@@ -178,7 +194,7 @@ export function GenericTablePage({
         <div className="flex flex-col gap-6">
             <PageHeader title={title} description={description} actions={actions} />
 
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg transition-all duration-300 hover:shadow-xl">
                 <GenericTableList
                     columns={visibleColumns}
                     data={sortedData}
@@ -192,11 +208,13 @@ export function GenericTablePage({
                     onSort={handleSort}
                     sortKey={sortKey}
                     sortDirection={sortDirection}
+                    columnFilters={columnFilters}
+                    onColumnFilterChange={handleColumnFilterChange}
                 />
 
-                {filteredData.length > 0 && (
+                {filteredByColumns.length > 0 && (
                     <div className="border-t border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                        {t("common.showingEntries", { shown: filteredData.length, total: data.length })}
+                        {t("common.showingEntries", { shown: filteredByColumns.length, total: data.length })}
                     </div>
                 )}
             </div>

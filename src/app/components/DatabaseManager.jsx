@@ -364,14 +364,14 @@ export function DatabaseManager({ userEmail, onLogout }) {
         });
         toast.success(t("toasts.excelTemplateReady"));
     };
-    const handleDownloadExcel = () => {
+    const handleDownloadExcel = (filteredData) => {
         const config = excelConfig[currentPage];
         if (!config) return;
         downloadExcelData({
             fileName: config.fileName,
             sheetName: config.sheetName,
             headerSpecs: config.downloadHeaders,
-            data: config.data,
+            data: filteredData || config.data,
         });
         toast.success(t("toasts.excelDownloadReady"));
     };
@@ -1206,7 +1206,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
                             type="button"
                             onClick={handleAddCompanyProduct}
                             disabled={isSaving || !productMappingForm.master_product_code || !productMappingForm.company_product_name}
-                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 md:col-span-2"
+                            className="btn-primary md:col-span-2"
                         >
                             {t("drawer.addMapping")}
                         </button>
@@ -1289,7 +1289,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
                             type="button"
                             onClick={handleAddCompanyAgent}
                             disabled={isSaving || !agentMappingForm.master_agent_code || !agentMappingForm.master_product_code}
-                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 md:col-span-2"
+                            className="btn-primary md:col-span-2"
                         >
                             {t("drawer.addMapping")}
                         </button>
@@ -1410,6 +1410,14 @@ export function DatabaseManager({ userEmail, onLogout }) {
             searchQuery={currentPage === "home" || currentPage === "excel-upload" ? undefined : searchQuery}
             onSearchChange={currentPage === "home" || currentPage === "excel-upload" ? undefined : setSearchQuery}
             hideSidebar={currentPage === "home"}
+            stats={{
+                companies: companies.length,
+                masterProducts: masterProducts.length,
+                masterAgents: masterAgents.length,
+                productsPerCompany: productsPerCompany.length,
+                agentsPerCompany: agentsPerCompany.length,
+                userAccess: userAccess.length,
+            }}
         >
             {renderPage()}
             <RecordDrawer

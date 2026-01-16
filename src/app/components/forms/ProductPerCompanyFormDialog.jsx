@@ -56,7 +56,7 @@ export function ProductPerCompanyFormDialog({ open, onOpenChange, onSave, mode, 
                     <button type="button" onClick={() => onOpenChange(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-100">
                         {t("common.cancel")}
                     </button>
-                    <button type="submit" form={formId} disabled={isSaveDisabled} className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
+                    <button type="submit" form={formId} disabled={isSaveDisabled} className="btn-primary disabled:cursor-not-allowed">
                         {mode === "add" ? t("forms.productPerCompany.add") : t("common.saveChanges")}
                     </button>
                 </>
@@ -75,7 +75,7 @@ export function ProductPerCompanyFormDialog({ open, onOpenChange, onSave, mode, 
 
             <div className="space-y-2">
               <label htmlFor="company_product_name" className="block text-sm font-medium text-gray-700">{t("forms.productPerCompany.companyProductName")}</label>
-              <input id="company_product_name" value={formData.company_product_name} onChange={(e) => setFormData({ ...formData, company_product_name: e.target.value })} required placeholder={t("forms.productPerCompany.companyProductPlaceholder")} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"/>
+              <input id="company_product_name" value={formData.company_product_name} onChange={(e) => setFormData({ ...formData, company_product_name: e.target.value })} required placeholder={t("forms.productPerCompany.companyProductPlaceholder")} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus-brand"/>
             </div>
             </form>
         </ModalShell>

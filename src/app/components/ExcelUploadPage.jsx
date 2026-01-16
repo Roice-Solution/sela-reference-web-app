@@ -22,7 +22,7 @@ export function ExcelUploadPage({
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-col gap-4 border-b border-slate-200 bg-slate-50 p-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-cyan-500 text-white">
                 <UploadCloud className="w-6 h-6" />
               </div>
               <div>
@@ -39,13 +39,13 @@ export function ExcelUploadPage({
               <button
                 type="button"
                 onClick={onDownloadTemplate}
-                className="w-full sm:w-auto rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                className="w-full sm:w-auto btn-secondary"
               >
                 {t("excel.template")}
               </button>
               <label
                 htmlFor={fileInputId}
-                className="w-full cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
+                className="w-full cursor-pointer text-center sm:w-auto btn-primary"
               >
                 {t("excel.upload")}
               </label>
@@ -145,7 +145,7 @@ export function ExcelUploadPage({
               <button
                 type="button"
                 onClick={onCancelUpload}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-100"
+                className="btn-secondary"
               >
                 {t("common.cancel")}
               </button>
@@ -153,7 +153,7 @@ export function ExcelUploadPage({
                 type="button"
                 onClick={onConfirmUpload}
                 disabled={isSaving}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-60"
+                className="btn-primary"
               >
                 {t("excel.confirmButton")}
               </button>

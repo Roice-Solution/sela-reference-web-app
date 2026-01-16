@@ -136,7 +136,36 @@ function AppContent() {
     };
     return (<>
       {isAuthenticated ? (<DatabaseManager userEmail={userEmail} onLogout={handleLogout} />) : (<LoginPage onLogin={handleLogin} isLoading={isAuthLoading} />)}
-      <Toaster position="top-right" offset={{ top: 24, right: 24 }}/>
+      <Toaster 
+        position="top-right" 
+        offset={{ top: 24, right: 24 }}
+        toastOptions={{
+          style: { 
+            background: 'white',
+            border: '1px solid rgb(226, 232, 240)',
+            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+            borderRadius: '12px',
+            padding: '12px 16px',
+          },
+          className: 'glass',
+          success: {
+            style: {
+              background: 'linear-gradient(135deg, rgb(16, 185, 129) 0%, rgb(20, 184, 166) 100%)',
+              color: 'white',
+              border: 'none',
+              fontWeight: '600',
+            }
+          },
+          error: {
+            style: {
+              background: 'linear-gradient(135deg, rgb(239, 68, 68) 0%, rgb(236, 72, 153) 100%)',
+              color: 'white',
+              border: 'none',
+              fontWeight: '600',
+            }
+          },
+        }}
+      />
     </>);
 }
 export default function App() {
