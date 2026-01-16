@@ -93,7 +93,7 @@ function AppContent() {
         };
         loadSession();
         return () => clearSessionTimer();
-    }, [t]);
+    }, [t, handleSessionExpiry, scheduleSessionExpiry]);
     const handleLogin = async (email, password) => {
         setIsAuthLoading(true);
         try {

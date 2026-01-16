@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { ChevronRight, ChevronLeft, LayoutGrid, Link2, Lock, LogOut, Upload, User, Building2, Package, Users, Star, Clock, Menu, X, Home, FileText, UserCheck, FileSpreadsheet } from "lucide-react";
+import { ChevronRight, ChevronLeft, LayoutGrid, Link2, Lock, LogOut, Upload, User, Building2, Package, Users, Star, Clock, Home, FileText, UserCheck, FileSpreadsheet } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useI18n } from "../i18n/i18n";
 

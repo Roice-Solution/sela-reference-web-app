@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useI18n } from "../i18n/i18n";
-import { Building2, Package, Users, Plus, Upload, TrendingUp, Clock, Sparkles } from "lucide-react";
+import { Building2, Package, Users, Plus, Upload, TrendingUp, Clock } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import homeBanner from "../../assets/home-banner.png";
 

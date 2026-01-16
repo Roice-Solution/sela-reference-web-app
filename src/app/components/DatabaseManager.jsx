@@ -352,7 +352,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
             data: userAccess,
             upload: (rows) => userAccessApi.create(rows),
         },
-    }), [agentPerCompanyColumns, companies, companyColumns, masterAgentColumns, masterAgents, masterProductColumns, masterProducts, productsPerCompany, productPerCompanyColumns, t, userAccess, userAccessColumns]);
+    }), [agentPerCompanyColumns, companies, companyColumns, masterAgentColumns, masterAgents, masterProductColumns, masterProducts, productsPerCompany, productPerCompanyColumns, t, userAccess, userAccessColumns, normalizedAgentsPerCompany, normalizedProductsPerCompany]);
     const handleDownloadTemplate = () => {
         const sheets = Object.values(excelConfig).map((config) => ({
             sheetName: config.sheetName,
@@ -548,7 +548,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
         return () => {
             isMounted = false;
         };
-    }, [currentPage]);
+    }, [currentPage, loadForPage]);
     // CRUD handlers for Companies
     const handleAddCompany = (company) => {
         setIsSaving(true);
