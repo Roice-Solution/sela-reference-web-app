@@ -352,7 +352,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
             data: userAccess,
             upload: (rows) => userAccessApi.create(rows),
         },
-    }), [companies, masterAgents, masterProducts, productsPerCompany, t, userAccess, normalizedAgentsPerCompany, normalizedProductsPerCompany]);
+    }), [companies, masterAgents, masterProducts, t, userAccess, normalizedAgentsPerCompany, normalizedProductsPerCompany]);
     const handleDownloadTemplate = () => {
         const sheets = Object.values(excelConfig).map((config) => ({
             sheetName: config.sheetName,
