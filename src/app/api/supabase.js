@@ -336,6 +336,175 @@ export const agentsPerCompanyApi = {
   },
 };
 
+export const agentCommissionsApi = {
+  list: async () => {
+    const { data, error } = await supabase
+      .from("agent_commissions")
+      .select(
+        "*,company:companies(company_code,company_name),master_agent:master_agents(master_agent_code,full_agent_name),master_product:master_products(master_product_code,master_product_name),tier:agent_commission_tiers(id,tier_sequence_number,from_amount,to_amount,one_time_commission)"
+      )
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    return data || [];
+  },
+  getById: async (agreementId) => {
+    const { data, error } = await supabase
+      .from("agent_commissions")
+      .select(
+        "*,company:companies(company_code,company_name),master_agent:master_agents(master_agent_code,full_agent_name),master_product:master_products(master_product_code,master_product_name),tier:agent_commission_tiers(id,tier_sequence_number,from_amount,to_amount,one_time_commission)"
+      )
+      .eq("id", agreementId)
+      .limit(1);
+    if (error) throw error;
+    return data?.[0] || null;
+  },
+  create: async (payload) => {
+    const normalized = { ...(payload || {}) };
+    const parseBoolean = (value) => {
+      if (typeof value === "boolean") return value;
+      if (typeof value === "string") {
+        const lower = value.toLowerCase();
+        if (lower === "true") return true;
+        if (lower === "false") return false;
+      }
+      return Boolean(value);
+    };
+    delete normalized.id;
+    if (normalized.tier_id !== undefined && normalized.tier_id !== null) {
+      normalized.tier_id = Number(normalized.tier_id);
+    }
+    if (normalized.one_time_commission_value !== undefined && normalized.one_time_commission_value !== null) {
+      normalized.one_time_commission_value = Number(normalized.one_time_commission_value);
+    }
+    if (normalized.ongoing_commission_percent !== undefined && normalized.ongoing_commission_percent !== null) {
+      normalized.ongoing_commission_percent = Number(normalized.ongoing_commission_percent);
+    }
+    if (normalized.one_time_commission_type === "fixed") {
+      normalized.one_time_commission_type = "amount";
+    }
+    if (normalized.use_one_time_tiers !== undefined) {
+      normalized.use_one_time_tiers = parseBoolean(normalized.use_one_time_tiers);
+    }
+    const { data, error } = await supabase.from("agent_commissions").insert(normalized).select("*");
+    if (error) throw error;
+    return data || [];
+  },
+  update: async (agreementId, payload) => {
+    const normalized = { ...(payload || {}) };
+    const parseBoolean = (value) => {
+      if (typeof value === "boolean") return value;
+      if (typeof value === "string") {
+        const lower = value.toLowerCase();
+        if (lower === "true") return true;
+        if (lower === "false") return false;
+      }
+      return Boolean(value);
+    };
+    delete normalized.id;
+    if (normalized.tier_id !== undefined && normalized.tier_id !== null) {
+      normalized.tier_id = Number(normalized.tier_id);
+    }
+    if (normalized.one_time_commission_value !== undefined && normalized.one_time_commission_value !== null) {
+      normalized.one_time_commission_value = Number(normalized.one_time_commission_value);
+    }
+    if (normalized.ongoing_commission_percent !== undefined && normalized.ongoing_commission_percent !== null) {
+      normalized.ongoing_commission_percent = Number(normalized.ongoing_commission_percent);
+    }
+    if (normalized.one_time_commission_type === "fixed") {
+      normalized.one_time_commission_type = "amount";
+    }
+    if (normalized.use_one_time_tiers !== undefined) {
+      normalized.use_one_time_tiers = parseBoolean(normalized.use_one_time_tiers);
+    }
+    const { data, error } = await supabase
+      .from("agent_commissions")
+      .update(normalized)
+      .eq("id", agreementId)
+      .select("*");
+    if (error) throw error;
+    return data || [];
+  },
+  remove: async (agreementId) => {
+    const { error } = await supabase.from("agent_commissions").delete().eq("id", agreementId);
+    if (error) throw error;
+  },
+};
+
+export const agentCommissionTiersApi = {
+  list: async () => {
+    const { data, error } = await supabase
+      .from("agent_commission_tiers")
+      .select("*")
+      .order("tier_sequence_number", { ascending: true })
+      .limit(200);
+    if (error) throw error;
+    return data || [];
+  },
+  getById: async (tierId) => {
+    const { data, error } = await supabase
+      .from("agent_commission_tiers")
+      .select("*")
+      .eq("id", tierId)
+      .limit(1);
+    if (error) throw error;
+    return data?.[0] || null;
+  },
+  create: async (payload) => {
+    const rows = Array.isArray(payload) ? payload : [payload];
+    const normalized = rows.map((item) => {
+      const row = { ...(item || {}) };
+      return {
+        tier_sequence_number:
+          row.tier_sequence_number !== undefined && row.tier_sequence_number !== null
+            ? Number(row.tier_sequence_number)
+            : row.tier_sequence_number,
+        from_amount:
+          row.from_amount !== undefined && row.from_amount !== null
+            ? Number(row.from_amount)
+            : row.from_amount,
+        to_amount:
+          row.to_amount !== undefined && row.to_amount !== null
+            ? Number(row.to_amount)
+            : row.to_amount,
+        one_time_commission:
+          row.one_time_commission !== undefined && row.one_time_commission !== null
+            ? Number(row.one_time_commission)
+            : row.one_time_commission,
+      };
+    });
+    const { data, error } = await supabase.from("agent_commission_tiers").insert(normalized).select("*");
+    if (error) throw error;
+    return data || [];
+  },
+  update: async (id, payload) => {
+    const normalized = { ...(payload || {}) };
+    if (normalized.tier_sequence_number !== undefined) {
+      normalized.tier_sequence_number = Number(normalized.tier_sequence_number);
+    }
+    if (normalized.from_amount !== undefined) {
+      normalized.from_amount = Number(normalized.from_amount);
+    }
+    if (normalized.to_amount !== undefined) {
+      normalized.to_amount = Number(normalized.to_amount);
+    }
+    if (normalized.one_time_commission !== undefined) {
+      normalized.one_time_commission = Number(normalized.one_time_commission);
+    }
+    const { data, error } = await supabase
+      .from("agent_commission_tiers")
+      .update(normalized)
+      .eq("id", id)
+      .select("*");
+    if (error) throw error;
+    return data || [];
+  },
+  remove: async (id) => {
+    const { error } = await supabase.from("agent_commission_tiers").delete().eq("id", id);
+    if (error) throw error;
+  },
+};
+
 export const userAccessApi = {
   list: async () => {
     const { data, error } = await supabase.from("user_access").select("*").limit(50);

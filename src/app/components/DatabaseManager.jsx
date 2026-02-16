@@ -9,7 +9,9 @@ import { MasterAgentFormDialog } from "./forms/MasterAgentFormDialog";
 import { ProductPerCompanyFormDialog } from "./forms/ProductPerCompanyFormDialog";
 import { AgentPerCompanyFormDialog } from "./forms/AgentPerCompanyFormDialog";
 import { UserAccessFormDialog } from "./forms/UserAccessFormDialog";
-import { agentsPerCompanyApi, companiesApi, masterAgentsApi, masterProductsApi, productsPerCompanyApi, userAccessApi, } from "../api/supabase";
+import { AgentCommissionMasterFormDialog } from "./forms/AgentCommissionMasterFormDialog";
+import { AgentCommissionTierFormDialog } from "./forms/AgentCommissionTierFormDialog";
+import { agentCommissionTiersApi, agentCommissionsApi, agentsPerCompanyApi, companiesApi, masterAgentsApi, masterProductsApi, productsPerCompanyApi, userAccessApi, } from "../api/supabase";
 import { useI18n } from "../i18n/i18n";
 import { ExcelUploadPage } from "./ExcelUploadPage";
 import { downloadExcelData, downloadExcelTemplateWorkbook, parseSheetRows, readExcelWorkbook } from "../utils/excel";
@@ -25,6 +27,8 @@ export function DatabaseManager({ userEmail, onLogout }) {
     const [masterAgents, setMasterAgents] = useState([]);
     const [productsPerCompany, setProductsPerCompany] = useState([]);
     const [agentsPerCompany, setAgentsPerCompany] = useState([]);
+    const [agentCommissions, setAgentCommissions] = useState([]);
+    const [agentCommissionTiers, setAgentCommissionTiers] = useState([]);
     const [userAccess, setUserAccess] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -128,6 +132,26 @@ export function DatabaseManager({ userEmail, onLogout }) {
         { key: "role", label: t("columns.role"), width: "w-[120px]" },
         { key: "created_at", label: t("columns.created"), width: "w-[150px]", type: "date" },
     ];
+    const agentCommissionMasterColumns = [
+        { key: "id", label: t("columns.id"), width: "w-[90px]", type: "code" },
+        { key: "company_name", label: t("columns.companyName"), width: "w-[190px]" },
+        { key: "master_agent_name", label: t("columns.agentName"), width: "w-[190px]" },
+        { key: "master_product_name", label: t("columns.productName"), width: "w-[190px]" },
+        { key: "one_time_commission_type", label: t("columns.oneTimeCommissionType"), width: "w-[140px]" },
+        { key: "one_time_commission_value", label: t("columns.oneTimeCommissionValue"), width: "w-[150px]" },
+        { key: "use_one_time_tiers_label", label: t("columns.useOneTimeTiers"), width: "w-[120px]" },
+        { key: "start_date", label: t("columns.startDate"), width: "w-[140px]", type: "date" },
+        { key: "record_type", label: t("columns.recordType"), width: "w-[110px]" },
+        { key: "agreement_status", label: t("columns.agreementStatus"), width: "w-[130px]", type: "status" },
+    ];
+    const agentCommissionTierColumns = [
+        { key: "id", label: t("columns.id"), width: "w-[80px]" },
+        { key: "tier_sequence_number", label: t("columns.tierSequence"), width: "w-[130px]" },
+        { key: "from_amount", label: t("columns.fromAmount"), width: "w-[120px]" },
+        { key: "to_amount", label: t("columns.toAmount"), width: "w-[120px]" },
+        { key: "one_time_commission", label: t("columns.oneTimeCommission"), width: "w-[140px]" },
+        { key: "created_at", label: t("columns.created"), width: "w-[140px]", type: "date" },
+    ];
     const normalizedProductsPerCompany = useMemo(
         () =>
             productsPerCompany.map((item) => ({
@@ -146,6 +170,17 @@ export function DatabaseManager({ userEmail, onLogout }) {
                 master_product_name: item.master_product?.master_product_name ?? item.master_product_name ?? "",
             })),
         [agentsPerCompany]
+    );
+    const normalizedAgentCommissions = useMemo(
+        () =>
+            agentCommissions.map((item) => ({
+                ...item,
+                company_name: item.company?.company_name ?? item.company_name ?? item.company_code ?? "",
+                master_agent_name: item.master_agent?.full_agent_name ?? item.master_agent_name ?? item.master_agent_code ?? "",
+                master_product_name: item.master_product?.master_product_name ?? item.master_product_name ?? item.master_product_code ?? "",
+                use_one_time_tiers_label: item.use_one_time_tiers ? t("common.yes") : t("common.no"),
+            })),
+        [agentCommissions, t]
     );
     const excelConfig = useMemo(() => ({
         companies: {
@@ -528,6 +563,26 @@ export function DatabaseManager({ userEmail, onLogout }) {
                     setUserAccess(getValue(result[0], t("tables.userAccessTitle")));
                     break;
                 }
+                case "agent-commission-master": {
+                    const results = await Promise.allSettled([
+                        agentCommissionsApi.list(),
+                        agentCommissionTiersApi.list(),
+                        companiesApi.list(),
+                        masterAgentsApi.list(),
+                        masterProductsApi.list(),
+                    ]);
+                    setAgentCommissions(getValue(results[0], t("tables.agentCommissionMasterTitle")));
+                    setAgentCommissionTiers(getValue(results[1], t("tables.agentCommissionTierTitle")));
+                    setCompanies(getValue(results[2], t("tables.companiesTitle")));
+                    setMasterAgents(getValue(results[3], t("tables.masterAgentsTitle")));
+                    setMasterProducts(getValue(results[4], t("tables.masterProductsTitle")));
+                    break;
+                }
+                case "agent-commission-tier": {
+                    const result = await Promise.allSettled([agentCommissionTiersApi.list()]);
+                    setAgentCommissionTiers(getValue(result[0], t("tables.agentCommissionTierTitle")));
+                    break;
+                }
                 default:
                     break;
             }
@@ -881,6 +936,148 @@ export function DatabaseManager({ userEmail, onLogout }) {
             setIsSaving(false);
         });
     };
+    const handleAddAgentCommissionMaster = (agreement) => {
+        const { _selected_tier_id: selectedTierId = null, ...payload } = agreement || {};
+        setIsSaving(true);
+        Promise.resolve()
+            .then(async () => {
+                let tierId = null;
+                if (payload?.use_one_time_tiers) {
+                    if (selectedTierId) {
+                        tierId = Number(selectedTierId);
+                    }
+                }
+                return agentCommissionsApi.create({
+                    ...payload,
+                    tier_id: payload?.use_one_time_tiers ? tierId : null,
+                    one_time_commission_value: payload?.use_one_time_tiers ? null : payload?.one_time_commission_value,
+                });
+            })
+            .then(() => {
+            toast.success(t("toasts.agentCommissionMasterAdded"));
+            setIsAddDialogOpen(false);
+            loadForPage(currentPage);
+        })
+            .catch((error) => {
+            const details = error?.message ? ` ${error.message}` : "";
+            toast.error(t("toasts.agentCommissionMasterAddFailed") + details);
+        })
+            .finally(() => {
+            setIsSaving(false);
+        });
+    };
+    const handleEditAgentCommissionMaster = (agreement) => {
+        if (!editingItem) {
+            return;
+        }
+        const { _selected_tier_id: selectedTierId = null, ...payload } = agreement || {};
+        setIsSaving(true);
+        Promise.resolve()
+            .then(async () => {
+                let tierId = editingItem.tier_id ?? null;
+                if (payload?.use_one_time_tiers) {
+                    if (selectedTierId) {
+                        tierId = Number(selectedTierId);
+                    }
+                }
+                if (!payload?.use_one_time_tiers) {
+                    tierId = null;
+                }
+                return agentCommissionsApi.update(editingItem.id, {
+                    ...payload,
+                    tier_id: tierId,
+                    one_time_commission_value: payload?.use_one_time_tiers ? null : payload?.one_time_commission_value,
+                });
+            })
+            .then(() => {
+            toast.success(t("toasts.agentCommissionMasterUpdated"));
+            setEditingItem(null);
+            loadForPage(currentPage);
+        })
+            .catch((error) => {
+            const details = error?.message ? ` ${error.message}` : "";
+            toast.error(t("toasts.agentCommissionMasterUpdateFailed") + details);
+        })
+            .finally(() => {
+            setIsSaving(false);
+        });
+    };
+    const handleDeleteAgentCommissionMaster = (agreement) => {
+        if (!window.confirm(t("common.confirmDelete"))) return;
+        setIsSaving(true);
+        agentCommissionsApi
+            .remove(agreement.id)
+            .then(() => {
+            toast.success(t("toasts.agentCommissionMasterDeleted"));
+            loadForPage(currentPage);
+        })
+            .catch((error) => {
+            const details = error?.message ? ` ${error.message}` : "";
+            toast.error(t("toasts.agentCommissionMasterDeleteFailed") + details);
+        })
+            .finally(() => {
+            setIsSaving(false);
+        });
+    };
+    const handleCreateTierForMaster = async (tierPayload) => {
+        const created = await agentCommissionTiersApi.create(tierPayload);
+        await loadForPage("agent-commission-master");
+        return created?.[0] || null;
+    };
+    const handleAddAgentCommissionTier = (tier) => {
+        setIsSaving(true);
+        agentCommissionTiersApi
+            .create(tier)
+            .then(() => {
+            toast.success(t("toasts.agentCommissionTierAdded"));
+            setIsAddDialogOpen(false);
+            loadForPage(currentPage);
+        })
+            .catch((error) => {
+            const details = error?.message ? ` ${error.message}` : "";
+            toast.error(t("toasts.agentCommissionTierAddFailed") + details);
+        })
+            .finally(() => {
+            setIsSaving(false);
+        });
+    };
+    const handleEditAgentCommissionTier = (tier) => {
+        if (!editingItem) {
+            return;
+        }
+        setIsSaving(true);
+        agentCommissionTiersApi
+            .update(editingItem.id, tier)
+            .then(() => {
+            toast.success(t("toasts.agentCommissionTierUpdated"));
+            setEditingItem(null);
+            loadForPage(currentPage);
+        })
+            .catch((error) => {
+            const details = error?.message ? ` ${error.message}` : "";
+            toast.error(t("toasts.agentCommissionTierUpdateFailed") + details);
+        })
+            .finally(() => {
+            setIsSaving(false);
+        });
+    };
+    const handleDeleteAgentCommissionTier = (tier) => {
+        if (!window.confirm(t("common.confirmDelete"))) return;
+        setIsSaving(true);
+        agentCommissionTiersApi
+            .remove(tier.id)
+            .then(() => {
+            toast.success(t("toasts.agentCommissionTierDeleted"));
+            loadForPage(currentPage);
+        })
+            .catch((error) => {
+            const details = error?.message ? ` ${error.message}` : "";
+            toast.error(t("toasts.agentCommissionTierDeleteFailed") + details);
+        })
+            .finally(() => {
+            setIsSaving(false);
+        });
+    };
     const homePages = [
         {
             key: "companies",
@@ -913,6 +1110,16 @@ export function DatabaseManager({ userEmail, onLogout }) {
             description: t("tables.userAccessDescription"),
         },
         {
+            key: "agent-commission-master",
+            label: t("nav.agentCommissionMaster"),
+            description: t("tables.agentCommissionMasterDescription"),
+        },
+        {
+            key: "agent-commission-tier",
+            label: t("nav.agentCommissionTier"),
+            description: t("tables.agentCommissionTierDescription"),
+        },
+        {
             key: "excel-upload",
             label: t("nav.excelUpload"),
             description: t("excel.pageDescription"),
@@ -935,6 +1142,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
             items: [
                 { id: "master-products", label: t("nav.masterProducts") },
                 { id: "master-agents", label: t("nav.masterAgents") },
+                { id: "agent-commission-master", label: t("nav.agentCommissionMaster") },
             ],
         },
         {
@@ -943,6 +1151,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
             items: [
                 { id: "products-per-company", label: t("nav.productsPerCompany") },
                 { id: "agents-per-company", label: t("nav.agentsPerCompany") },
+                { id: "agent-commission-tier", label: t("nav.agentCommissionTier") },
             ],
         },
         {
@@ -961,8 +1170,10 @@ export function DatabaseManager({ userEmail, onLogout }) {
         companies: [t("nav.tablesSection"), t("nav.companies")],
         "master-products": [t("nav.mastersSection"), t("nav.masterProducts")],
         "master-agents": [t("nav.mastersSection"), t("nav.masterAgents")],
+        "agent-commission-master": [t("nav.mastersSection"), t("nav.agentCommissionMaster")],
         "products-per-company": [t("nav.mappingsSection"), t("nav.productsPerCompany")],
         "agents-per-company": [t("nav.mappingsSection"), t("nav.agentsPerCompany")],
+        "agent-commission-tier": [t("nav.mappingsSection"), t("nav.agentCommissionTier")],
         "user-access": [t("nav.accessSection"), t("nav.userAccess")],
         "excel-upload": [t("nav.importsSection"), t("nav.excelUpload")],
     };
@@ -1139,6 +1350,18 @@ export function DatabaseManager({ userEmail, onLogout }) {
             <UserAccessFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddUserAccess} mode="add"/>
             {editingItem && (<UserAccessFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditUserAccess} mode="edit" initialData={editingItem}/>)}
           </>);
+            case "agent-commission-master":
+                return (<>
+            <GenericTablePage title={t("tables.agentCommissionMasterTitle")} description={t("tables.agentCommissionMasterDescription")} columns={agentCommissionMasterColumns} data={normalizedAgentCommissions} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("agent-commission-master", item)} onDelete={handleDeleteAgentCommissionMaster} getItemId={(item) => item.id} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={null} searchQuery={searchQuery} selectedId={drawerPage === "agent-commission-master" ? drawerItem?.id : null}/>
+            <AgentCommissionMasterFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddAgentCommissionMaster} mode="add" companies={companies} masterAgents={masterAgents} masterProducts={masterProducts} tiers={agentCommissionTiers} onCreateTier={handleCreateTierForMaster}/>
+            {editingItem && (<AgentCommissionMasterFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditAgentCommissionMaster} mode="edit" initialData={editingItem} companies={companies} masterAgents={masterAgents} masterProducts={masterProducts} tiers={agentCommissionTiers} onCreateTier={handleCreateTierForMaster}/>)}
+          </>);
+            case "agent-commission-tier":
+                return (<>
+            <GenericTablePage title={t("tables.agentCommissionTierTitle")} description={t("tables.agentCommissionTierDescription")} columns={agentCommissionTierColumns} data={agentCommissionTiers} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("agent-commission-tier", item)} onDelete={handleDeleteAgentCommissionTier} getItemId={(item) => item.id} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={null} searchQuery={searchQuery} selectedId={drawerPage === "agent-commission-tier" ? drawerItem?.id : null}/>
+            <AgentCommissionTierFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddAgentCommissionTier} mode="add"/>
+            {editingItem && (<AgentCommissionTierFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditAgentCommissionTier} mode="edit" initialData={editingItem}/>)}
+          </>);
             case "excel-upload":
                 return (<ExcelUploadPage tables={Object.entries(excelConfig).map(([key, config]) => ({
                         key,
@@ -1153,16 +1376,20 @@ export function DatabaseManager({ userEmail, onLogout }) {
         companies: companyColumns,
         "master-products": masterProductColumns,
         "master-agents": masterAgentColumns,
+        "agent-commission-master": agentCommissionMasterColumns,
         "products-per-company": productPerCompanyColumns,
         "agents-per-company": agentPerCompanyColumns,
+        "agent-commission-tier": agentCommissionTierColumns,
         "user-access": userAccessColumns,
     };
     const drawerTitleMap = {
         companies: t("tables.companiesTitle"),
         "master-products": t("tables.masterProductsTitle"),
         "master-agents": t("tables.masterAgentsTitle"),
+        "agent-commission-master": t("tables.agentCommissionMasterTitle"),
         "products-per-company": t("tables.productsPerCompanyTitle"),
         "agents-per-company": t("tables.agentsPerCompanyTitle"),
+        "agent-commission-tier": t("tables.agentCommissionTierTitle"),
         "user-access": t("tables.userAccessTitle"),
     };
     const masterProductMap = new Map(masterProducts.map((product) => [product.master_product_code, product.master_product_name]));
@@ -1418,6 +1645,8 @@ export function DatabaseManager({ userEmail, onLogout }) {
                 masterAgents: masterAgents.length,
                 productsPerCompany: productsPerCompany.length,
                 agentsPerCompany: agentsPerCompany.length,
+                agentCommissions: agentCommissions.length,
+                agentCommissionTiers: agentCommissionTiers.length,
                 userAccess: userAccess.length,
             }}
         >

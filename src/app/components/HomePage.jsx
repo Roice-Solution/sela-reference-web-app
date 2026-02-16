@@ -6,8 +6,18 @@ import homeBanner from "../../assets/home-banner.png";
 
 export function HomePage({ pages, onNavigate, onAddCompany, onImport, stats, lastUpdated }) {
     const { t } = useI18n();
-    const workAreas = useMemo(
-        () => pages.filter((page) => ["companies", "products-per-company", "agents-per-company"].includes(page.key)),
+    const masterMenus = useMemo(
+        () =>
+            pages.filter((page) =>
+                ["master-products", "master-agents", "agent-commission-master"].includes(page.key)
+            ),
+        [pages]
+    );
+    const mappingMenus = useMemo(
+        () =>
+            pages.filter((page) =>
+                ["products-per-company", "agents-per-company", "agent-commission-tier"].includes(page.key)
+            ),
         [pages]
     );
     const kpis = [
@@ -170,19 +180,19 @@ export function HomePage({ pages, onNavigate, onAddCompany, onImport, stats, las
                 </div>
             </section>
 
-            {/* Work Areas Section with Enhanced Cards */}
+            {/* Masters Menu Section */}
             <section className="space-y-6">
                 <div className="space-y-2">
                     <div className="flex items-center gap-3">
                         <div className="h-1 w-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-400" />
                         <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-                            {t("home.workAreasTitle")}
+                            {t("home.masterMenuTitle")}
                         </h2>
                     </div>
-                    <p className="text-base text-slate-600">{t("home.workAreasSubtitle")}</p>
+                    <p className="text-base text-slate-600">{t("home.masterMenuSubtitle")}</p>
                 </div>
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {workAreas.map((page, index) => {
+                    {masterMenus.map((page, index) => {
                         const gradients = [
                             "from-blue-500 to-cyan-400",
                             "from-purple-500 to-pink-400",
@@ -228,6 +238,68 @@ export function HomePage({ pages, onNavigate, onAddCompany, onImport, stats, las
                                 </div>
                                 
                                 {/* Hover Arrow Indicator */}
+                                <div className="absolute bottom-6 right-6 translate-x-2 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+                                    <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${gradients[index % 3]} shadow-lg`}>
+                                        <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+            </section>
+
+            {/* Mappings Menu Section */}
+            <section className="space-y-6">
+                <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                        <div className="h-1 w-12 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400" />
+                        <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+                            {t("home.mappingMenuTitle")}
+                        </h2>
+                    </div>
+                    <p className="text-base text-slate-600">{t("home.mappingMenuSubtitle")}</p>
+                </div>
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {mappingMenus.map((page, index) => {
+                        const gradients = [
+                            "from-emerald-500 to-teal-400",
+                            "from-blue-500 to-cyan-400",
+                            "from-purple-500 to-pink-400"
+                        ];
+                        const bgColors = [
+                            "group-hover:bg-emerald-50",
+                            "group-hover:bg-blue-50",
+                            "group-hover:bg-purple-50"
+                        ];
+                        return (
+                            <button
+                                key={page.key}
+                                type="button"
+                                onClick={() => onNavigate(page.key)}
+                                className={`group relative flex h-full w-full flex-col gap-4 overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl ${bgColors[index % 3]}`}
+                            >
+                                <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-slate-100 to-slate-50 opacity-50 transition-all duration-300 group-hover:scale-150" />
+                                <div className={`relative h-1.5 w-16 rounded-full bg-gradient-to-r ${gradients[index % 3]} shadow-sm`} />
+                                <div className="relative space-y-3">
+                                    <h3 className="text-xl font-bold text-slate-900 transition-colors group-hover:text-slate-800">
+                                        {page.label}
+                                    </h3>
+                                    <p className="text-sm leading-relaxed text-slate-600">
+                                        {page.description}
+                                    </p>
+                                </div>
+                                <div className="relative mt-auto flex items-center justify-between border-t border-slate-100 pt-4 text-xs">
+                                    <div className="flex items-center gap-2 text-slate-500">
+                                        <Clock className="h-3.5 w-3.5" />
+                                        <span className="font-medium">{t("home.lastUpdated")}</span>
+                                    </div>
+                                    <span className="font-semibold text-slate-700">
+                                        {formatDate(lastUpdated?.[page.key])}
+                                    </span>
+                                </div>
                                 <div className="absolute bottom-6 right-6 translate-x-2 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
                                     <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${gradients[index % 3]} shadow-lg`}>
                                         <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
