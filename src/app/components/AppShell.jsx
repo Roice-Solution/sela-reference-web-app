@@ -21,7 +21,6 @@ const itemIcons = {
     'agent-commission-master': FileText,
     'products-per-company': Link2,
     'agents-per-company': UserCheck,
-    'agent-commission-tier': FileText,
     'user-access': Lock,
     'excel-upload': FileSpreadsheet,
 };
@@ -83,7 +82,6 @@ export function AppShell({
             'agent-commission-master': stats?.agentCommissions ?? 0,
             'products-per-company': stats?.productsPerCompany ?? 0,
             'agents-per-company': stats?.agentsPerCompany ?? 0,
-            'agent-commission-tier': stats?.agentCommissionTiers ?? 0,
             'user-access': stats?.userAccess ?? 0,
         };
         return counts[itemId] || 0;

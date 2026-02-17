@@ -4,7 +4,7 @@ import { Building2, Package, Users, Plus, Upload, TrendingUp, Clock } from "luci
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import homeBanner from "../../assets/home-banner.png";
 
-export function HomePage({ pages, onNavigate, onAddCompany, onImport, stats, lastUpdated }) {
+export function HomePage({ pages, onNavigate, onAddCompany, onImport, stats, lastUpdated, isLoading }) {
     const { t } = useI18n();
     const masterMenus = useMemo(
         () =>
@@ -16,7 +16,7 @@ export function HomePage({ pages, onNavigate, onAddCompany, onImport, stats, las
     const mappingMenus = useMemo(
         () =>
             pages.filter((page) =>
-                ["products-per-company", "agents-per-company", "agent-commission-tier"].includes(page.key)
+                ["products-per-company", "agents-per-company"].includes(page.key)
             ),
         [pages]
     );
@@ -52,10 +52,10 @@ export function HomePage({ pages, onNavigate, onAddCompany, onImport, stats, las
             iconColor: "text-emerald-600",
         },
         {
-            key: "total-records",
-            label: "Total Records",
-            value: (stats?.companies ?? 0) + (stats?.masterProducts ?? 0) + (stats?.masterAgents ?? 0),
-            action: () => {},
+            key: "agent-commission-master",
+            label: t("nav.agentCommissionMaster"),
+            value: stats?.agentCommissions ?? 0,
+            action: () => onNavigate("agent-commission-master"),
             icon: TrendingUp,
             gradient: "from-amber-500 to-orange-500",
             bgGradient: "from-amber-50 to-orange-50",
@@ -146,7 +146,7 @@ export function HomePage({ pages, onNavigate, onAddCompany, onImport, stats, las
                                 <div className={`absolute inset-0 bg-gradient-to-br ${kpi.bgGradient} opacity-0 transition-opacity duration-300 group-hover:opacity-50`} />
                                 
                                 {/* Content */}
-                                <div className="relative z-10 flex flex-col gap-4">
+                                <div className="relative z-10 flex flex-col gap-4 items-center text-center sm:items-start sm:text-left">
                                     {/* Icon with Gradient Background */}
                                     <div className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${kpi.gradient} shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}>
                                         <Icon className="h-7 w-7 text-white" />
@@ -154,9 +154,13 @@ export function HomePage({ pages, onNavigate, onAddCompany, onImport, stats, las
                                     
                                     {/* Stats */}
                                     <div className="space-y-1">
-                                        <div className="text-4xl font-bold tracking-tight text-slate-900">
-                                            {kpi.value.toLocaleString()}
-                                        </div>
+                                        {isLoading ? (
+                                            <div className="h-10 w-24 animate-pulse rounded-lg bg-slate-200" />
+                                        ) : (
+                                            <div className="text-4xl font-bold tracking-tight text-slate-900">
+                                                {kpi.value.toLocaleString()}
+                                            </div>
+                                        )}
                                         <div className="text-sm font-medium text-slate-600">{kpi.label}</div>
                                     </div>
                                     
@@ -165,7 +169,7 @@ export function HomePage({ pages, onNavigate, onAddCompany, onImport, stats, las
                                         <button
                                             type="button"
                                             onClick={kpi.action}
-                                            className={`mt-2 flex items-center gap-2 text-sm font-semibold ${kpi.iconColor} transition-all duration-200 hover:gap-3`}
+                                            className={`mt-2 flex items-center gap-2 text-sm font-semibold ${kpi.iconColor} transition-all duration-200 hover:gap-3 justify-center sm:justify-start`}
                                         >
                                             {t("home.view")}
                                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

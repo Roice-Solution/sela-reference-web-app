@@ -112,6 +112,17 @@ export const masterProductsApi = {
     if (error) throw error;
     return count || 0;
   },
+  latestUpdated: async () => {
+    const { data, error } = await supabase
+      .from("master_products")
+      .select("updated_at,created_at")
+      .order("updated_at", { ascending: false, nullsLast: true })
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    const row = data?.[0];
+    return row?.updated_at || row?.created_at || null;
+  },
   create: async (payload) => {
     const normalized = Object.fromEntries(
       Object.entries(payload || {}).filter(([_, value]) => {
@@ -197,6 +208,17 @@ export const masterAgentsApi = {
       .select("*", { count: "exact", head: true });
     if (error) throw error;
     return count || 0;
+  },
+  latestUpdated: async () => {
+    const { data, error } = await supabase
+      .from("master_agents")
+      .select("updated_at,created_at")
+      .order("updated_at", { ascending: false, nullsLast: true })
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    const row = data?.[0];
+    return row?.updated_at || row?.created_at || null;
   },
   update: async (code, payload) => {
     const normalized = Object.fromEntries(
@@ -337,11 +359,18 @@ export const agentsPerCompanyApi = {
 };
 
 export const agentCommissionsApi = {
+  count: async () => {
+    const { count, error } = await supabase
+      .from("agent_commissions")
+      .select("*", { count: "exact", head: true });
+    if (error) throw error;
+    return count || 0;
+  },
   list: async () => {
     const { data, error } = await supabase
       .from("agent_commissions")
       .select(
-        "*,company:companies(company_code,company_name),master_agent:master_agents(master_agent_code,full_agent_name),master_product:master_products(master_product_code,master_product_name),tier:agent_commission_tiers(id,tier_sequence_number,from_amount,to_amount,one_time_commission)"
+        "*,company:companies(company_code,company_name),master_agent:master_agents(master_agent_code,full_agent_name),master_product:master_products(master_product_code,master_product_name),tiers:agent_commission_tiers(id,tier_sequence_number,from_amount,to_amount,one_time_commission)"
       )
       .order("created_at", { ascending: false })
       .limit(50);
@@ -352,12 +381,22 @@ export const agentCommissionsApi = {
     const { data, error } = await supabase
       .from("agent_commissions")
       .select(
-        "*,company:companies(company_code,company_name),master_agent:master_agents(master_agent_code,full_agent_name),master_product:master_products(master_product_code,master_product_name),tier:agent_commission_tiers(id,tier_sequence_number,from_amount,to_amount,one_time_commission)"
+        "*,company:companies(company_code,company_name),master_agent:master_agents(master_agent_code,full_agent_name),master_product:master_products(master_product_code,master_product_name),tiers:agent_commission_tiers(id,tier_sequence_number,from_amount,to_amount,one_time_commission)"
       )
       .eq("id", agreementId)
       .limit(1);
     if (error) throw error;
     return data?.[0] || null;
+  },
+  listByCompanyCode: async (companyCode) => {
+    const { data, error } = await supabase
+      .from("agent_commissions")
+      .select(
+        "*,company:companies(company_code,company_name),master_agent:master_agents(master_agent_code,full_agent_name),master_product:master_products(master_product_code,master_product_name),tiers:agent_commission_tiers(id,tier_sequence_number,from_amount,to_amount,one_time_commission)"
+      )
+      .eq("company_code", companyCode);
+    if (error) throw error;
+    return data || [];
   },
   create: async (payload) => {
     const normalized = { ...(payload || {}) };
@@ -371,9 +410,6 @@ export const agentCommissionsApi = {
       return Boolean(value);
     };
     delete normalized.id;
-    if (normalized.tier_id !== undefined && normalized.tier_id !== null) {
-      normalized.tier_id = Number(normalized.tier_id);
-    }
     if (normalized.one_time_commission_value !== undefined && normalized.one_time_commission_value !== null) {
       normalized.one_time_commission_value = Number(normalized.one_time_commission_value);
     }
@@ -402,9 +438,6 @@ export const agentCommissionsApi = {
       return Boolean(value);
     };
     delete normalized.id;
-    if (normalized.tier_id !== undefined && normalized.tier_id !== null) {
-      normalized.tier_id = Number(normalized.tier_id);
-    }
     if (normalized.one_time_commission_value !== undefined && normalized.one_time_commission_value !== null) {
       normalized.one_time_commission_value = Number(normalized.one_time_commission_value);
     }
@@ -429,6 +462,17 @@ export const agentCommissionsApi = {
     const { error } = await supabase.from("agent_commissions").delete().eq("id", agreementId);
     if (error) throw error;
   },
+  latestUpdated: async () => {
+    const { data, error } = await supabase
+      .from("agent_commissions")
+      .select("updated_at,created_at")
+      .order("updated_at", { ascending: false, nullsLast: true })
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    const row = data?.[0];
+    return row?.updated_at || row?.created_at || null;
+  },
 };
 
 export const agentCommissionTiersApi = {
@@ -438,6 +482,16 @@ export const agentCommissionTiersApi = {
       .select("*")
       .order("tier_sequence_number", { ascending: true })
       .limit(200);
+    if (error) throw error;
+    return data || [];
+  },
+  listByCommission: async (commissionId) => {
+    if (!Number.isFinite(Number(commissionId))) return [];
+    const { data, error } = await supabase
+      .from("agent_commission_tiers")
+      .select("*")
+      .eq("agent_commission_id", Number(commissionId))
+      .order("tier_sequence_number", { ascending: true });
     if (error) throw error;
     return data || [];
   },
@@ -455,6 +509,10 @@ export const agentCommissionTiersApi = {
     const normalized = rows.map((item) => {
       const row = { ...(item || {}) };
       return {
+        agent_commission_id:
+          row.agent_commission_id !== undefined && row.agent_commission_id !== null
+            ? Number(row.agent_commission_id)
+            : row.agent_commission_id,
         tier_sequence_number:
           row.tier_sequence_number !== undefined && row.tier_sequence_number !== null
             ? Number(row.tier_sequence_number)
@@ -502,6 +560,17 @@ export const agentCommissionTiersApi = {
   remove: async (id) => {
     const { error } = await supabase.from("agent_commission_tiers").delete().eq("id", id);
     if (error) throw error;
+  },
+  latestUpdated: async () => {
+    const { data, error } = await supabase
+      .from("agent_commission_tiers")
+      .select("updated_at,created_at")
+      .order("updated_at", { ascending: false, nullsLast: true })
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    const row = data?.[0];
+    return row?.updated_at || row?.created_at || null;
   },
 };
 

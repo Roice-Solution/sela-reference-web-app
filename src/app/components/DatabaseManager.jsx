@@ -10,7 +10,6 @@ import { ProductPerCompanyFormDialog } from "./forms/ProductPerCompanyFormDialog
 import { AgentPerCompanyFormDialog } from "./forms/AgentPerCompanyFormDialog";
 import { UserAccessFormDialog } from "./forms/UserAccessFormDialog";
 import { AgentCommissionMasterFormDialog } from "./forms/AgentCommissionMasterFormDialog";
-import { AgentCommissionTierFormDialog } from "./forms/AgentCommissionTierFormDialog";
 import { agentCommissionTiersApi, agentCommissionsApi, agentsPerCompanyApi, companiesApi, masterAgentsApi, masterProductsApi, productsPerCompanyApi, userAccessApi, } from "../api/supabase";
 import { useI18n } from "../i18n/i18n";
 import { ExcelUploadPage } from "./ExcelUploadPage";
@@ -28,7 +27,6 @@ export function DatabaseManager({ userEmail, onLogout }) {
     const [productsPerCompany, setProductsPerCompany] = useState([]);
     const [agentsPerCompany, setAgentsPerCompany] = useState([]);
     const [agentCommissions, setAgentCommissions] = useState([]);
-    const [agentCommissionTiers, setAgentCommissionTiers] = useState([]);
     const [userAccess, setUserAccess] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -41,8 +39,11 @@ export function DatabaseManager({ userEmail, onLogout }) {
     const [homeCounts, setHomeCounts] = useState(null);
     const [homeLastUpdated, setHomeLastUpdated] = useState({
         companies: null,
+        "master-products": null,
+        "master-agents": null,
         "products-per-company": null,
         "agents-per-company": null,
+        "agent-commission-master": null,
     });
     const [productMappingForm, setProductMappingForm] = useState({
         master_product_code: "",
@@ -57,8 +58,9 @@ export function DatabaseManager({ userEmail, onLogout }) {
         companies: homeCounts?.companies ?? companies.length,
         masterProducts: homeCounts?.masterProducts ?? masterProducts.length,
         masterAgents: homeCounts?.masterAgents ?? masterAgents.length,
+        agentCommissions: homeCounts?.agentCommissions ?? agentCommissions.length,
         userAccess: homeCounts?.userAccess ?? userAccess.length,
-    }), [companies, masterAgents, masterProducts, homeCounts, userAccess]);
+    }), [agentCommissions.length, companies.length, homeCounts, masterAgents.length, masterProducts.length, userAccess.length]);
     const getLatestTimestamp = (items) => {
         if (!items || items.length === 0) return null;
         return items.reduce((latest, item) => {
@@ -77,8 +79,11 @@ export function DatabaseManager({ userEmail, onLogout }) {
     }), [companies, productsPerCompany, agentsPerCompany]);
     const mergedLastUpdated = useMemo(() => ({
         companies: computedLastUpdated.companies ?? homeLastUpdated.companies,
+        "master-products": homeLastUpdated["master-products"],
+        "master-agents": homeLastUpdated["master-agents"],
         "products-per-company": computedLastUpdated["products-per-company"] ?? homeLastUpdated["products-per-company"],
         "agents-per-company": computedLastUpdated["agents-per-company"] ?? homeLastUpdated["agents-per-company"],
+        "agent-commission-master": homeLastUpdated["agent-commission-master"],
     }), [computedLastUpdated, homeLastUpdated]);
     // Column configurations for each table
     const companyColumns = [
@@ -143,14 +148,6 @@ export function DatabaseManager({ userEmail, onLogout }) {
         { key: "start_date", label: t("columns.startDate"), width: "w-[140px]", type: "date" },
         { key: "record_type", label: t("columns.recordType"), width: "w-[110px]" },
         { key: "agreement_status", label: t("columns.agreementStatus"), width: "w-[130px]", type: "status" },
-    ];
-    const agentCommissionTierColumns = [
-        { key: "id", label: t("columns.id"), width: "w-[80px]" },
-        { key: "tier_sequence_number", label: t("columns.tierSequence"), width: "w-[130px]" },
-        { key: "from_amount", label: t("columns.fromAmount"), width: "w-[120px]" },
-        { key: "to_amount", label: t("columns.toAmount"), width: "w-[120px]" },
-        { key: "one_time_commission", label: t("columns.oneTimeCommission"), width: "w-[140px]" },
-        { key: "created_at", label: t("columns.created"), width: "w-[140px]", type: "date" },
     ];
     const normalizedProductsPerCompany = useMemo(
         () =>
@@ -487,10 +484,14 @@ export function DatabaseManager({ userEmail, onLogout }) {
                         companiesApi.count(),
                         masterProductsApi.count(),
                         masterAgentsApi.count(),
+                        agentCommissionsApi.count(),
                         userAccessApi.count(),
                         companiesApi.latestUpdated(),
                         productsPerCompanyApi.latestUpdated(),
                         agentsPerCompanyApi.latestUpdated(),
+                        masterProductsApi.latestUpdated(),
+                        masterAgentsApi.latestUpdated(),
+                        agentCommissionsApi.latestUpdated(),
                     ]);
                     const getCount = (result, label) => {
                         if (result.status === "fulfilled") return result.value || 0;
@@ -508,12 +509,16 @@ export function DatabaseManager({ userEmail, onLogout }) {
                         companies: getCount(results[0], t("tables.companiesTitle")),
                         masterProducts: getCount(results[1], t("tables.masterProductsTitle")),
                         masterAgents: getCount(results[2], t("tables.masterAgentsTitle")),
-                        userAccess: getCount(results[3], t("tables.userAccessTitle")),
+                        agentCommissions: getCount(results[3], t("tables.agentCommissionMasterTitle")),
+                        userAccess: getCount(results[4], t("tables.userAccessTitle")),
                     });
                     setHomeLastUpdated({
-                        companies: getLatest(results[4], t("tables.companiesTitle")),
-                        "products-per-company": getLatest(results[5], t("tables.productsPerCompanyTitle")),
-                        "agents-per-company": getLatest(results[6], t("tables.agentsPerCompanyTitle")),
+                        companies: getLatest(results[5], t("tables.companiesTitle")),
+                        "products-per-company": getLatest(results[6], t("tables.productsPerCompanyTitle")),
+                        "agents-per-company": getLatest(results[7], t("tables.agentsPerCompanyTitle")),
+                        "master-products": getLatest(results[8], t("tables.masterProductsTitle")),
+                        "master-agents": getLatest(results[9], t("tables.masterAgentsTitle")),
+                        "agent-commission-master": getLatest(results[10], t("tables.agentCommissionMasterTitle")),
                     });
                     break;
                 }
@@ -566,21 +571,14 @@ export function DatabaseManager({ userEmail, onLogout }) {
                 case "agent-commission-master": {
                     const results = await Promise.allSettled([
                         agentCommissionsApi.list(),
-                        agentCommissionTiersApi.list(),
                         companiesApi.list(),
                         masterAgentsApi.list(),
                         masterProductsApi.list(),
                     ]);
                     setAgentCommissions(getValue(results[0], t("tables.agentCommissionMasterTitle")));
-                    setAgentCommissionTiers(getValue(results[1], t("tables.agentCommissionTierTitle")));
-                    setCompanies(getValue(results[2], t("tables.companiesTitle")));
-                    setMasterAgents(getValue(results[3], t("tables.masterAgentsTitle")));
-                    setMasterProducts(getValue(results[4], t("tables.masterProductsTitle")));
-                    break;
-                }
-                case "agent-commission-tier": {
-                    const result = await Promise.allSettled([agentCommissionTiersApi.list()]);
-                    setAgentCommissionTiers(getValue(result[0], t("tables.agentCommissionTierTitle")));
+                    setCompanies(getValue(results[1], t("tables.companiesTitle")));
+                    setMasterAgents(getValue(results[2], t("tables.masterAgentsTitle")));
+                    setMasterProducts(getValue(results[3], t("tables.masterProductsTitle")));
                     break;
                 }
                 default:
@@ -937,21 +935,26 @@ export function DatabaseManager({ userEmail, onLogout }) {
         });
     };
     const handleAddAgentCommissionMaster = (agreement) => {
-        const { _selected_tier_id: selectedTierId = null, ...payload } = agreement || {};
+        const { _one_time_tiers: oneTimeTiers = [], ...payload } = agreement || {};
         setIsSaving(true);
         Promise.resolve()
             .then(async () => {
-                let tierId = null;
-                if (payload?.use_one_time_tiers) {
-                    if (selectedTierId) {
-                        tierId = Number(selectedTierId);
-                    }
-                }
-                return agentCommissionsApi.create({
+                const created = await agentCommissionsApi.create({
                     ...payload,
-                    tier_id: payload?.use_one_time_tiers ? tierId : null,
                     one_time_commission_value: payload?.use_one_time_tiers ? null : payload?.one_time_commission_value,
                 });
+                const commissionId = created?.[0]?.id;
+                if (commissionId && payload?.use_one_time_tiers && oneTimeTiers.length) {
+                    await agentCommissionTiersApi.create(
+                        oneTimeTiers.map((tier, index) => ({
+                            agent_commission_id: commissionId,
+                            tier_sequence_number: tier.tier_sequence_number ?? index + 1,
+                            from_amount: tier.from_amount,
+                            to_amount: tier.to_amount,
+                            one_time_commission: tier.one_time_commission,
+                        }))
+                    );
+                }
             })
             .then(() => {
             toast.success(t("toasts.agentCommissionMasterAdded"));
@@ -970,24 +973,29 @@ export function DatabaseManager({ userEmail, onLogout }) {
         if (!editingItem) {
             return;
         }
-        const { _selected_tier_id: selectedTierId = null, ...payload } = agreement || {};
+        const { _one_time_tiers: oneTimeTiers = [], ...payload } = agreement || {};
         setIsSaving(true);
         Promise.resolve()
             .then(async () => {
-                let tierId = editingItem.tier_id ?? null;
-                if (payload?.use_one_time_tiers) {
-                    if (selectedTierId) {
-                        tierId = Number(selectedTierId);
-                    }
-                }
-                if (!payload?.use_one_time_tiers) {
-                    tierId = null;
-                }
-                return agentCommissionsApi.update(editingItem.id, {
+                await agentCommissionsApi.update(editingItem.id, {
                     ...payload,
-                    tier_id: tierId,
                     one_time_commission_value: payload?.use_one_time_tiers ? null : payload?.one_time_commission_value,
                 });
+                const existingTiers = await agentCommissionTiersApi.listByCommission(editingItem.id);
+                for (const tier of existingTiers) {
+                    await agentCommissionTiersApi.remove(tier.id);
+                }
+                if (payload?.use_one_time_tiers && oneTimeTiers.length) {
+                    await agentCommissionTiersApi.create(
+                        oneTimeTiers.map((tier, index) => ({
+                            agent_commission_id: editingItem.id,
+                            tier_sequence_number: tier.tier_sequence_number ?? index + 1,
+                            from_amount: tier.from_amount,
+                            to_amount: tier.to_amount,
+                            one_time_commission: tier.one_time_commission,
+                        }))
+                    );
+                }
             })
             .then(() => {
             toast.success(t("toasts.agentCommissionMasterUpdated"));
@@ -1014,65 +1022,6 @@ export function DatabaseManager({ userEmail, onLogout }) {
             .catch((error) => {
             const details = error?.message ? ` ${error.message}` : "";
             toast.error(t("toasts.agentCommissionMasterDeleteFailed") + details);
-        })
-            .finally(() => {
-            setIsSaving(false);
-        });
-    };
-    const handleCreateTierForMaster = async (tierPayload) => {
-        const created = await agentCommissionTiersApi.create(tierPayload);
-        await loadForPage("agent-commission-master");
-        return created?.[0] || null;
-    };
-    const handleAddAgentCommissionTier = (tier) => {
-        setIsSaving(true);
-        agentCommissionTiersApi
-            .create(tier)
-            .then(() => {
-            toast.success(t("toasts.agentCommissionTierAdded"));
-            setIsAddDialogOpen(false);
-            loadForPage(currentPage);
-        })
-            .catch((error) => {
-            const details = error?.message ? ` ${error.message}` : "";
-            toast.error(t("toasts.agentCommissionTierAddFailed") + details);
-        })
-            .finally(() => {
-            setIsSaving(false);
-        });
-    };
-    const handleEditAgentCommissionTier = (tier) => {
-        if (!editingItem) {
-            return;
-        }
-        setIsSaving(true);
-        agentCommissionTiersApi
-            .update(editingItem.id, tier)
-            .then(() => {
-            toast.success(t("toasts.agentCommissionTierUpdated"));
-            setEditingItem(null);
-            loadForPage(currentPage);
-        })
-            .catch((error) => {
-            const details = error?.message ? ` ${error.message}` : "";
-            toast.error(t("toasts.agentCommissionTierUpdateFailed") + details);
-        })
-            .finally(() => {
-            setIsSaving(false);
-        });
-    };
-    const handleDeleteAgentCommissionTier = (tier) => {
-        if (!window.confirm(t("common.confirmDelete"))) return;
-        setIsSaving(true);
-        agentCommissionTiersApi
-            .remove(tier.id)
-            .then(() => {
-            toast.success(t("toasts.agentCommissionTierDeleted"));
-            loadForPage(currentPage);
-        })
-            .catch((error) => {
-            const details = error?.message ? ` ${error.message}` : "";
-            toast.error(t("toasts.agentCommissionTierDeleteFailed") + details);
         })
             .finally(() => {
             setIsSaving(false);
@@ -1115,11 +1064,6 @@ export function DatabaseManager({ userEmail, onLogout }) {
             description: t("tables.agentCommissionMasterDescription"),
         },
         {
-            key: "agent-commission-tier",
-            label: t("nav.agentCommissionTier"),
-            description: t("tables.agentCommissionTierDescription"),
-        },
-        {
             key: "excel-upload",
             label: t("nav.excelUpload"),
             description: t("excel.pageDescription"),
@@ -1151,7 +1095,6 @@ export function DatabaseManager({ userEmail, onLogout }) {
             items: [
                 { id: "products-per-company", label: t("nav.productsPerCompany") },
                 { id: "agents-per-company", label: t("nav.agentsPerCompany") },
-                { id: "agent-commission-tier", label: t("nav.agentCommissionTier") },
             ],
         },
         {
@@ -1173,7 +1116,6 @@ export function DatabaseManager({ userEmail, onLogout }) {
         "agent-commission-master": [t("nav.mastersSection"), t("nav.agentCommissionMaster")],
         "products-per-company": [t("nav.mappingsSection"), t("nav.productsPerCompany")],
         "agents-per-company": [t("nav.mappingsSection"), t("nav.agentsPerCompany")],
-        "agent-commission-tier": [t("nav.mappingsSection"), t("nav.agentCommissionTier")],
         "user-access": [t("nav.accessSection"), t("nav.userAccess")],
         "excel-upload": [t("nav.importsSection"), t("nav.excelUpload")],
     };
@@ -1313,7 +1255,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
     const renderPage = () => {
         switch (currentPage) {
             case "home":
-                return (<HomePage pages={homePages} onNavigate={setCurrentPage} onAddCompany={handleHomeAddCompany} onImport={handleHomeImport} stats={homeStats} lastUpdated={mergedLastUpdated} />);
+                return (<HomePage pages={homePages} onNavigate={setCurrentPage} onAddCompany={handleHomeAddCompany} onImport={handleHomeImport} stats={homeStats} lastUpdated={mergedLastUpdated} isLoading={isLoading} />);
             case "companies":
                 return (<>
             <GenericTablePage title={t("tables.companiesTitle")} description={t("tables.companiesDescription")} columns={companyColumns} data={companies} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("companies", item)} onDelete={handleDeleteCompany} getItemId={(item) => item.company_code} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel} searchQuery={searchQuery} selectedId={drawerPage === "companies" ? drawerItem?.company_code : null}/>
@@ -1353,14 +1295,8 @@ export function DatabaseManager({ userEmail, onLogout }) {
             case "agent-commission-master":
                 return (<>
             <GenericTablePage title={t("tables.agentCommissionMasterTitle")} description={t("tables.agentCommissionMasterDescription")} columns={agentCommissionMasterColumns} data={normalizedAgentCommissions} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("agent-commission-master", item)} onDelete={handleDeleteAgentCommissionMaster} getItemId={(item) => item.id} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={null} searchQuery={searchQuery} selectedId={drawerPage === "agent-commission-master" ? drawerItem?.id : null}/>
-            <AgentCommissionMasterFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddAgentCommissionMaster} mode="add" companies={companies} masterAgents={masterAgents} masterProducts={masterProducts} tiers={agentCommissionTiers} onCreateTier={handleCreateTierForMaster}/>
-            {editingItem && (<AgentCommissionMasterFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditAgentCommissionMaster} mode="edit" initialData={editingItem} companies={companies} masterAgents={masterAgents} masterProducts={masterProducts} tiers={agentCommissionTiers} onCreateTier={handleCreateTierForMaster}/>)}
-          </>);
-            case "agent-commission-tier":
-                return (<>
-            <GenericTablePage title={t("tables.agentCommissionTierTitle")} description={t("tables.agentCommissionTierDescription")} columns={agentCommissionTierColumns} data={agentCommissionTiers} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("agent-commission-tier", item)} onDelete={handleDeleteAgentCommissionTier} getItemId={(item) => item.id} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={null} searchQuery={searchQuery} selectedId={drawerPage === "agent-commission-tier" ? drawerItem?.id : null}/>
-            <AgentCommissionTierFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddAgentCommissionTier} mode="add"/>
-            {editingItem && (<AgentCommissionTierFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditAgentCommissionTier} mode="edit" initialData={editingItem}/>)}
+            <AgentCommissionMasterFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddAgentCommissionMaster} mode="add" companies={companies} masterAgents={masterAgents} masterProducts={masterProducts}/>
+            {editingItem && (<AgentCommissionMasterFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditAgentCommissionMaster} mode="edit" initialData={editingItem} companies={companies} masterAgents={masterAgents} masterProducts={masterProducts}/>)}
           </>);
             case "excel-upload":
                 return (<ExcelUploadPage tables={Object.entries(excelConfig).map(([key, config]) => ({
@@ -1379,7 +1315,6 @@ export function DatabaseManager({ userEmail, onLogout }) {
         "agent-commission-master": agentCommissionMasterColumns,
         "products-per-company": productPerCompanyColumns,
         "agents-per-company": agentPerCompanyColumns,
-        "agent-commission-tier": agentCommissionTierColumns,
         "user-access": userAccessColumns,
     };
     const drawerTitleMap = {
@@ -1389,7 +1324,6 @@ export function DatabaseManager({ userEmail, onLogout }) {
         "agent-commission-master": t("tables.agentCommissionMasterTitle"),
         "products-per-company": t("tables.productsPerCompanyTitle"),
         "agents-per-company": t("tables.agentsPerCompanyTitle"),
-        "agent-commission-tier": t("tables.agentCommissionTierTitle"),
         "user-access": t("tables.userAccessTitle"),
     };
     const masterProductMap = new Map(masterProducts.map((product) => [product.master_product_code, product.master_product_name]));
@@ -1646,7 +1580,6 @@ export function DatabaseManager({ userEmail, onLogout }) {
                 productsPerCompany: productsPerCompany.length,
                 agentsPerCompany: agentsPerCompany.length,
                 agentCommissions: agentCommissions.length,
-                agentCommissionTiers: agentCommissionTiers.length,
                 userAccess: userAccess.length,
             }}
         >
