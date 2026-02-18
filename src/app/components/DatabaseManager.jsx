@@ -54,6 +54,22 @@ export function DatabaseManager({ userEmail, onLogout }) {
         master_product_code: "",
         comments: "",
     });
+    const handlePageNavigate = useCallback((page) => {
+        if (isSaving)
+            return;
+        setCurrentPage(page);
+    }, [isSaving]);
+    const handleAddDialogOpenChange = useCallback((open) => {
+        if (isSaving && !open)
+            return;
+        setIsAddDialogOpen(open);
+    }, [isSaving]);
+    const handleEditDialogOpenChange = useCallback((open) => {
+        if (isSaving && !open)
+            return;
+        if (!open)
+            setEditingItem(null);
+    }, [isSaving]);
     const homeStats = useMemo(() => ({
         companies: homeCounts?.companies ?? companies.length,
         masterProducts: homeCounts?.masterProducts ?? masterProducts.length,
@@ -969,26 +985,37 @@ export function DatabaseManager({ userEmail, onLogout }) {
             setIsSaving(false);
         });
     };
+    const refreshAgentCommissionById = async (commissionId, { syncEditingItem = false } = {}) => {
+        if (!commissionId) return null;
+        const freshRecord = await agentCommissionsApi.getById(commissionId);
+        if (!freshRecord) return null;
+        setAgentCommissions((prev) => prev.map((item) => (item.id === commissionId ? freshRecord : item)));
+        if (syncEditingItem) {
+            setEditingItem(freshRecord);
+        }
+        return freshRecord;
+    };
     const handleEditAgentCommissionMaster = (agreement) => {
         if (!editingItem) {
             return;
         }
+        const commissionId = editingItem.id;
         const { _one_time_tiers: oneTimeTiers = [], ...payload } = agreement || {};
         setIsSaving(true);
         Promise.resolve()
             .then(async () => {
-                await agentCommissionsApi.update(editingItem.id, {
+                await agentCommissionsApi.update(commissionId, {
                     ...payload,
                     one_time_commission_value: payload?.use_one_time_tiers ? null : payload?.one_time_commission_value,
                 });
-                const existingTiers = await agentCommissionTiersApi.listByCommission(editingItem.id);
+                const existingTiers = await agentCommissionTiersApi.listByCommission(commissionId);
                 for (const tier of existingTiers) {
                     await agentCommissionTiersApi.remove(tier.id);
                 }
                 if (payload?.use_one_time_tiers && oneTimeTiers.length) {
                     await agentCommissionTiersApi.create(
                         oneTimeTiers.map((tier, index) => ({
-                            agent_commission_id: editingItem.id,
+                            agent_commission_id: commissionId,
                             tier_sequence_number: tier.tier_sequence_number ?? index + 1,
                             from_amount: tier.from_amount,
                             to_amount: tier.to_amount,
@@ -996,6 +1023,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
                         }))
                     );
                 }
+                await refreshAgentCommissionById(commissionId);
             })
             .then(() => {
             toast.success(t("toasts.agentCommissionMasterUpdated"));
@@ -1009,6 +1037,21 @@ export function DatabaseManager({ userEmail, onLogout }) {
             .finally(() => {
             setIsSaving(false);
         });
+    };
+    const handleDeleteTierFromAgentCommissionEdit = async (tierId) => {
+        setIsSaving(true);
+        try {
+            await agentCommissionTiersApi.remove(tierId);
+            if (editingItem?.id) {
+                await refreshAgentCommissionById(editingItem.id, { syncEditingItem: true });
+            }
+        } catch (error) {
+            const details = error?.message ? ` ${error.message}` : "";
+            toast.error(t("toasts.agentCommissionMasterUpdateFailed") + details);
+            throw error;
+        } finally {
+            setIsSaving(false);
+        }
     };
     const handleDeleteAgentCommissionMaster = (agreement) => {
         if (!window.confirm(t("common.confirmDelete"))) return;
@@ -1122,6 +1165,16 @@ export function DatabaseManager({ userEmail, onLogout }) {
     useEffect(() => {
         setSearchQuery("");
     }, [currentPage]);
+    useEffect(() => {
+        if (!isSaving)
+            return undefined;
+        const handleBeforeUnload = (event) => {
+            event.preventDefault();
+            event.returnValue = "";
+        };
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, [isSaving]);
     const loadCompanyDetailData = async () => {
         try {
             const results = await Promise.allSettled([
@@ -1154,6 +1207,8 @@ export function DatabaseManager({ userEmail, onLogout }) {
         }
     };
     const closeDrawer = (open) => {
+        if (isSaving && !open)
+            return;
         if (!open) {
             setDrawerItem(null);
             setDrawerPage(null);
@@ -1245,58 +1300,62 @@ export function DatabaseManager({ userEmail, onLogout }) {
         }
     };
     const handleHomeAddCompany = () => {
+        if (isSaving)
+            return;
         setEditingItem(null);
         setCurrentPage("companies");
         setIsAddDialogOpen(true);
     };
     const handleHomeImport = () => {
+        if (isSaving)
+            return;
         setCurrentPage("excel-upload");
     };
     const renderPage = () => {
         switch (currentPage) {
             case "home":
-                return (<HomePage pages={homePages} onNavigate={setCurrentPage} onAddCompany={handleHomeAddCompany} onImport={handleHomeImport} stats={homeStats} lastUpdated={mergedLastUpdated} isLoading={isLoading} />);
+                return (<HomePage pages={homePages} onNavigate={handlePageNavigate} onAddCompany={handleHomeAddCompany} onImport={handleHomeImport} stats={homeStats} lastUpdated={mergedLastUpdated} isLoading={isLoading} isBusy={isSaving} />);
             case "companies":
                 return (<>
             <GenericTablePage title={t("tables.companiesTitle")} description={t("tables.companiesDescription")} columns={companyColumns} data={companies} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("companies", item)} onDelete={handleDeleteCompany} getItemId={(item) => item.company_code} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel} searchQuery={searchQuery} selectedId={drawerPage === "companies" ? drawerItem?.company_code : null}/>
-            <CompanyFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddCompany} mode="add"/>
-            {editingItem && (<CompanyFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditCompany} mode="edit" initialData={editingItem}/>)}
+            <CompanyFormDialog open={isAddDialogOpen} onOpenChange={handleAddDialogOpenChange} onSave={handleAddCompany} mode="add"/>
+            {editingItem && (<CompanyFormDialog open={!!editingItem} onOpenChange={handleEditDialogOpenChange} onSave={handleEditCompany} mode="edit" initialData={editingItem}/>)}
           </>);
             case "master-products":
                 return (<>
             <GenericTablePage title={t("tables.masterProductsTitle")} description={t("tables.masterProductsDescription")} columns={masterProductColumns} data={masterProducts} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("master-products", item)} onDelete={handleDeleteMasterProduct} getItemId={(item) => item.master_product_code} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel} searchQuery={searchQuery} selectedId={drawerPage === "master-products" ? drawerItem?.master_product_code : null}/>
-            <MasterProductFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddMasterProduct} mode="add"/>
-            {editingItem && (<MasterProductFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditMasterProduct} mode="edit" initialData={editingItem}/>)}
+            <MasterProductFormDialog open={isAddDialogOpen} onOpenChange={handleAddDialogOpenChange} onSave={handleAddMasterProduct} mode="add"/>
+            {editingItem && (<MasterProductFormDialog open={!!editingItem} onOpenChange={handleEditDialogOpenChange} onSave={handleEditMasterProduct} mode="edit" initialData={editingItem}/>)}
           </>);
             case "master-agents":
                 return (<>
             <GenericTablePage title={t("tables.masterAgentsTitle")} description={t("tables.masterAgentsDescription")} columns={masterAgentColumns} data={masterAgents} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("master-agents", item)} onDelete={handleDeleteMasterAgent} getItemId={(item) => item.master_agent_code} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel} searchQuery={searchQuery} selectedId={drawerPage === "master-agents" ? drawerItem?.master_agent_code : null}/>
-            <MasterAgentFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddMasterAgent} mode="add"/>
-            {editingItem && (<MasterAgentFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditMasterAgent} mode="edit" initialData={editingItem}/>)}
+            <MasterAgentFormDialog open={isAddDialogOpen} onOpenChange={handleAddDialogOpenChange} onSave={handleAddMasterAgent} mode="add"/>
+            {editingItem && (<MasterAgentFormDialog open={!!editingItem} onOpenChange={handleEditDialogOpenChange} onSave={handleEditMasterAgent} mode="edit" initialData={editingItem}/>)}
           </>);
             case "products-per-company":
                 return (<>
             <GenericTablePage title={t("tables.productsPerCompanyTitle")} description={t("tables.productsPerCompanyDescription")} columns={productPerCompanyColumns} data={normalizedProductsPerCompany} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("products-per-company", item)} onDelete={handleDeleteProductPerCompany} getItemId={(item) => item.id} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel} searchQuery={searchQuery} selectedId={drawerPage === "products-per-company" ? drawerItem?.id : null}/>
-            <ProductPerCompanyFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddProductPerCompany} mode="add" companies={companies} masterProducts={masterProducts}/>
-            {editingItem && (<ProductPerCompanyFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditProductPerCompany} mode="edit" initialData={editingItem} companies={companies} masterProducts={masterProducts}/>)}
+            <ProductPerCompanyFormDialog open={isAddDialogOpen} onOpenChange={handleAddDialogOpenChange} onSave={handleAddProductPerCompany} mode="add" companies={companies} masterProducts={masterProducts}/>
+            {editingItem && (<ProductPerCompanyFormDialog open={!!editingItem} onOpenChange={handleEditDialogOpenChange} onSave={handleEditProductPerCompany} mode="edit" initialData={editingItem} companies={companies} masterProducts={masterProducts}/>)}
           </>);
             case "agents-per-company":
                 return (<>
             <GenericTablePage title={t("tables.agentsPerCompanyTitle")} description={t("tables.agentsPerCompanyDescription")} columns={agentPerCompanyColumns} data={normalizedAgentsPerCompany} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("agents-per-company", item)} onDelete={handleDeleteAgentPerCompany} getItemId={(item) => item.id} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel} searchQuery={searchQuery} selectedId={drawerPage === "agents-per-company" ? drawerItem?.id : null}/>
-            <AgentPerCompanyFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddAgentPerCompany} mode="add" companies={companies} masterAgents={masterAgents} masterProducts={masterProducts} productsPerCompany={productsPerCompany}/>
-            {editingItem && (<AgentPerCompanyFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditAgentPerCompany} mode="edit" initialData={editingItem} companies={companies} masterAgents={masterAgents} masterProducts={masterProducts} productsPerCompany={productsPerCompany}/>)}
+            <AgentPerCompanyFormDialog open={isAddDialogOpen} onOpenChange={handleAddDialogOpenChange} onSave={handleAddAgentPerCompany} mode="add" companies={companies} masterAgents={masterAgents} masterProducts={masterProducts} productsPerCompany={productsPerCompany}/>
+            {editingItem && (<AgentPerCompanyFormDialog open={!!editingItem} onOpenChange={handleEditDialogOpenChange} onSave={handleEditAgentPerCompany} mode="edit" initialData={editingItem} companies={companies} masterAgents={masterAgents} masterProducts={masterProducts} productsPerCompany={productsPerCompany}/>)}
           </>);
             case "user-access":
                 return (<>
             <GenericTablePage title={t("tables.userAccessTitle")} description={t("tables.userAccessDescription")} columns={userAccessColumns} data={userAccess} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("user-access", item)} onDelete={handleDeleteUserAccess} getItemId={(item) => item.id} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={handleDownloadExcel} searchQuery={searchQuery} selectedId={drawerPage === "user-access" ? drawerItem?.id : null}/>
-            <UserAccessFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddUserAccess} mode="add"/>
-            {editingItem && (<UserAccessFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditUserAccess} mode="edit" initialData={editingItem}/>)}
+            <UserAccessFormDialog open={isAddDialogOpen} onOpenChange={handleAddDialogOpenChange} onSave={handleAddUserAccess} mode="add"/>
+            {editingItem && (<UserAccessFormDialog open={!!editingItem} onOpenChange={handleEditDialogOpenChange} onSave={handleEditUserAccess} mode="edit" initialData={editingItem}/>)}
           </>);
             case "agent-commission-master":
                 return (<>
             <GenericTablePage title={t("tables.agentCommissionMasterTitle")} description={t("tables.agentCommissionMasterDescription")} columns={agentCommissionMasterColumns} data={normalizedAgentCommissions} onAdd={() => setIsAddDialogOpen(true)} onEdit={setEditingItem} onView={(item) => handleView("agent-commission-master", item)} onDelete={handleDeleteAgentCommissionMaster} getItemId={(item) => item.id} isLoading={isLoading} isSaving={isSaving} onDownloadExcel={null} searchQuery={searchQuery} selectedId={drawerPage === "agent-commission-master" ? drawerItem?.id : null}/>
-            <AgentCommissionMasterFormDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onSave={handleAddAgentCommissionMaster} mode="add" companies={companies} masterAgents={masterAgents} masterProducts={masterProducts}/>
-            {editingItem && (<AgentCommissionMasterFormDialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)} onSave={handleEditAgentCommissionMaster} mode="edit" initialData={editingItem} companies={companies} masterAgents={masterAgents} masterProducts={masterProducts}/>)}
+            <AgentCommissionMasterFormDialog open={isAddDialogOpen} onOpenChange={handleAddDialogOpenChange} onSave={handleAddAgentCommissionMaster} mode="add" companies={companies} masterAgents={masterAgents} masterProducts={masterProducts}/>
+            {editingItem && (<AgentCommissionMasterFormDialog open={!!editingItem} onOpenChange={handleEditDialogOpenChange} onSave={handleEditAgentCommissionMaster} onDeleteTier={handleDeleteTierFromAgentCommissionEdit} mode="edit" initialData={editingItem} companies={companies} masterAgents={masterAgents} masterProducts={masterProducts}/>)}
           </>);
             case "excel-upload":
                 return (<ExcelUploadPage tables={Object.entries(excelConfig).map(([key, config]) => ({
@@ -1566,7 +1625,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
         <AppShell
             navSections={navSections}
             currentPage={currentPage}
-            onNavigate={setCurrentPage}
+            onNavigate={handlePageNavigate}
             userEmail={userEmail}
             onLogout={onLogout}
             breadcrumb={pageBreadcrumbs[currentPage] || [t("nav.home")]}
@@ -1610,6 +1669,9 @@ export function DatabaseManager({ userEmail, onLogout }) {
                         : null
                 }
             />
+            {isSaving ? (
+                <div className="fixed inset-0 z-[200] cursor-wait bg-slate-900/20 backdrop-blur-[1px]" aria-hidden="true" />
+            ) : null}
         </AppShell>
     );
 }

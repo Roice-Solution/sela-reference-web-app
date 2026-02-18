@@ -19,11 +19,14 @@ export function GenericTableList({
     sortDirection,
     columnFilters,
     onColumnFilterChange,
+    isSaving = false,
 }) {
     const { t } = useI18n();
     const [deleteItem, setDeleteItem] = useState(null);
     const handleDelete = () => {
         if (!deleteItem)
+            return;
+        if (isSaving)
             return;
         onDelete(deleteItem);
         setDeleteItem(null);
@@ -151,23 +154,23 @@ export function GenericTableList({
                 <td className={`${cellPadding} whitespace-nowrap text-right`} onClick={(event) => event.stopPropagation()}>
                   <DropdownMenu.Root>
                     <DropdownMenu.Trigger asChild>
-                      <button type="button" className="rounded-lg p-1.5 text-slate-500 transition-all duration-200 hover:bg-gradient-to-br hover:from-indigo-50 hover:to-purple-50 hover:text-indigo-600 hover:shadow-sm">
+                      <button type="button" disabled={isSaving} className="rounded-lg p-1.5 text-slate-500 transition-all duration-200 hover:bg-gradient-to-br hover:from-indigo-50 hover:to-purple-50 hover:text-indigo-600 hover:shadow-sm disabled:opacity-50">
                         <MoreVertical className="w-4 h-4 transition-transform hover:scale-110"/>
                       </button>
                     </DropdownMenu.Trigger>
                     <DropdownMenu.Portal>
                       <DropdownMenu.Content className="z-50 w-44 rounded-xl border border-slate-200 bg-white p-1 text-sm shadow-lg">
                         {onView ? (
-                          <DropdownMenu.Item onSelect={() => onView(item)} className="ripple flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50">
+                          <DropdownMenu.Item disabled={isSaving} onSelect={() => onView(item)} className="ripple flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
                             <Pencil className="h-4 w-4"/>
                             {t("common.viewDetails")}
                           </DropdownMenu.Item>
                         ) : null}
-                        <DropdownMenu.Item onSelect={() => onEdit(item)} className="ripple flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50">
+                        <DropdownMenu.Item disabled={isSaving} onSelect={() => onEdit(item)} className="ripple flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
                           <Pencil className="h-4 w-4"/>
                           {t("common.edit")}
                         </DropdownMenu.Item>
-                        <DropdownMenu.Item onSelect={() => setDeleteItem(item)} className="ripple flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-red-600 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50">{t("common.delete")}
+                        <DropdownMenu.Item disabled={isSaving} onSelect={() => setDeleteItem(item)} className="ripple flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-red-600 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50">{t("common.delete")}
                           <Trash2 className="h-4 w-4"/>
                           {t("common.delete")}
                         </DropdownMenu.Item>
@@ -187,10 +190,10 @@ export function GenericTableList({
               <h3 className="mb-2 text-lg font-semibold text-slate-900">{t("common.confirmTitle")}</h3>
               <p className="mb-6 text-sm text-slate-600">{t("common.confirmDeleteLong")}</p>
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => setDeleteItem(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-50">
+                <button type="button" disabled={isSaving} onClick={() => setDeleteItem(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-50 disabled:opacity-60">
                   {t("common.cancel")}
                 </button>
-                <button type="button" onClick={handleDelete} className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700">
+                <button type="button" disabled={isSaving} onClick={handleDelete} className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-60">
                   {t("common.delete")}
                 </button>
               </div>

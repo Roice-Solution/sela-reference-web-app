@@ -210,6 +210,7 @@ export function GenericTablePage({
                     sortDirection={sortDirection}
                     columnFilters={columnFilters}
                     onColumnFilterChange={handleColumnFilterChange}
+                    isSaving={isSaving}
                 />
 
                 {filteredByColumns.length > 0 && (

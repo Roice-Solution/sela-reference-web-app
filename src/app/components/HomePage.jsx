@@ -4,7 +4,7 @@ import { Building2, Package, Users, Plus, Upload, TrendingUp, Clock } from "luci
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import homeBanner from "../../assets/home-banner.png";
 
-export function HomePage({ pages, onNavigate, onAddCompany, onImport, stats, lastUpdated, isLoading }) {
+export function HomePage({ pages, onNavigate, onAddCompany, onImport, stats, lastUpdated, isLoading, isBusy = false }) {
     const { t } = useI18n();
     const masterMenus = useMemo(
         () =>
@@ -98,6 +98,7 @@ export function HomePage({ pages, onNavigate, onAddCompany, onImport, stats, las
                         <button
                             type="button"
                             onClick={onAddCompany}
+                            disabled={isBusy}
                             className="ripple group/btn flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-lg transition-all duration-200 hover:scale-105 hover:bg-white hover:shadow-xl active:scale-95"
                         >
                             <Plus className="h-4 w-4 transition-transform group-hover/btn:rotate-90" />
@@ -106,6 +107,7 @@ export function HomePage({ pages, onNavigate, onAddCompany, onImport, stats, las
                         <button
                             type="button"
                             onClick={onImport}
+                            disabled={isBusy}
                             className="ripple group/btn flex items-center gap-2 rounded-xl border-2 border-white/40 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:scale-105 hover:border-white/60 hover:bg-white/20 active:scale-95"
                         >
                             <Upload className="h-4 w-4 transition-transform group-hover/btn:-translate-y-0.5" />
@@ -169,6 +171,7 @@ export function HomePage({ pages, onNavigate, onAddCompany, onImport, stats, las
                                         <button
                                             type="button"
                                             onClick={kpi.action}
+                                            disabled={isBusy}
                                             className={`mt-2 flex items-center gap-2 text-sm font-semibold ${kpi.iconColor} transition-all duration-200 hover:gap-3 justify-center sm:justify-start`}
                                         >
                                             {t("home.view")}
@@ -212,6 +215,7 @@ export function HomePage({ pages, onNavigate, onAddCompany, onImport, stats, las
                                 key={page.key}
                                 type="button"
                                 onClick={() => onNavigate(page.key)}
+                                disabled={isBusy}
                                 className={`group relative flex h-full w-full flex-col gap-4 overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl ${bgColors[index % 3]}`}
                             >
                                 {/* Decorative Corner Element */}
@@ -283,6 +287,7 @@ export function HomePage({ pages, onNavigate, onAddCompany, onImport, stats, las
                                 key={page.key}
                                 type="button"
                                 onClick={() => onNavigate(page.key)}
+                                disabled={isBusy}
                                 className={`group relative flex h-full w-full flex-col gap-4 overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl ${bgColors[index % 3]}`}
                             >
                                 <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-slate-100 to-slate-50 opacity-50 transition-all duration-300 group-hover:scale-150" />

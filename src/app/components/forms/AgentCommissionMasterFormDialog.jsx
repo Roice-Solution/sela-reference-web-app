@@ -7,6 +7,7 @@ export function AgentCommissionMasterFormDialog({
     open,
     onOpenChange,
     onSave,
+    onDeleteTier,
     mode,
     initialData,
     companies,
@@ -31,6 +32,10 @@ export function AgentCommissionMasterFormDialog({
     });
     const [isTierListDialogOpen, setIsTierListDialogOpen] = useState(false);
     const [isAddTierDialogOpen, setIsAddTierDialogOpen] = useState(false);
+    const [deletingTierIds, setDeletingTierIds] = useState([]);
+    const [editingTierIndex, setEditingTierIndex] = useState(null);
+    const [tierListError, setTierListError] = useState("");
+    const [tierChangesPendingSave, setTierChangesPendingSave] = useState(false);
     const [tierRows, setTierRows] = useState([]);
     const [tierDraft, setTierDraft] = useState({
         tier_sequence_number: "",
@@ -77,6 +82,10 @@ export function AgentCommissionMasterFormDialog({
             });
             setIsTierListDialogOpen(false);
             setIsAddTierDialogOpen(false);
+            setDeletingTierIds([]);
+            setEditingTierIndex(null);
+            setTierListError("");
+            setTierChangesPendingSave(false);
             return;
         }
 
@@ -102,6 +111,10 @@ export function AgentCommissionMasterFormDialog({
         });
         setIsTierListDialogOpen(false);
         setIsAddTierDialogOpen(false);
+        setDeletingTierIds([]);
+        setEditingTierIndex(null);
+        setTierListError("");
+        setTierChangesPendingSave(false);
     }, [mode, initialData, open]);
 
     const companyOptions = companies.map((company) => ({
@@ -158,7 +171,6 @@ export function AgentCommissionMasterFormDialog({
         !formData.master_product_code ||
         !formData.one_time_commission_type ||
         (needsOneTimeValue && formData.one_time_commission_value === "") ||
-        (formData.use_one_time_tiers && tierRows.length === 0) ||
         !formData.record_type ||
         !formData.agreement_status;
 
@@ -167,29 +179,99 @@ export function AgentCommissionMasterFormDialog({
         tierDraft.from_amount === "" ||
         tierDraft.to_amount === "" ||
         tierDraft.one_time_commission === "";
+    const previousTier =
+        editingTierIndex !== null
+            ? tierRows[editingTierIndex - 1]
+            : tierRows[tierRows.length - 1];
+    const previousToAmount =
+        previousTier?.to_amount ?? previousTier?.to_amount === 0
+            ? Number(previousTier.to_amount)
+            : null;
+    const isTierFromAmountInvalid =
+        previousToAmount !== null &&
+        tierDraft.from_amount !== "" &&
+        Number(tierDraft.from_amount) < previousToAmount;
+    const isTierToAmountInvalid =
+        tierDraft.from_amount !== "" &&
+        tierDraft.to_amount !== "" &&
+        Number(tierDraft.to_amount) < Number(tierDraft.from_amount);
+    const isTierSaveDisabled = addTierDisabled || isTierFromAmountInvalid || isTierToAmountInvalid;
 
-    const handleAddTier = (event) => {
+    const handleSaveTier = (event) => {
         event.preventDefault();
-        if (addTierDisabled) return;
-        setTierRows((prev) => [
-            ...prev,
-            {
-                tier_sequence_number: Number(tierDraft.tier_sequence_number),
-                from_amount: Number(tierDraft.from_amount),
-                to_amount: Number(tierDraft.to_amount),
-                one_time_commission: Number(tierDraft.one_time_commission),
-            },
-        ]);
+        if (isTierSaveDisabled) return;
+        const normalizedTier = {
+            tier_sequence_number: Number(tierDraft.tier_sequence_number),
+            from_amount: Number(tierDraft.from_amount),
+            to_amount: Number(tierDraft.to_amount),
+            one_time_commission: Number(tierDraft.one_time_commission),
+        };
+        if (editingTierIndex !== null) {
+            setTierRows((prev) =>
+                prev.map((tier, index) =>
+                    index === editingTierIndex
+                        ? {
+                              ...tier,
+                              ...normalizedTier,
+                          }
+                        : tier
+                )
+            );
+            setTierChangesPendingSave(true);
+        } else {
+            setTierRows((prev) => [...prev, normalizedTier]);
+            setTierChangesPendingSave(true);
+        }
+        setTierListError("");
         setTierDraft({
             tier_sequence_number: "",
             from_amount: "",
             to_amount: "",
             one_time_commission: "",
         });
+        setEditingTierIndex(null);
         setIsAddTierDialogOpen(false);
         setIsTierListDialogOpen(true);
     };
 
+    const handleDeleteTier = async (tier, index) => {
+        if (mode === "edit" && tier?.id && onDeleteTier) {
+            setDeletingTierIds((prev) => [...prev, tier.id]);
+            try {
+                await onDeleteTier(tier.id);
+                setTierRows((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
+                setTierChangesPendingSave(true);
+            } finally {
+                setDeletingTierIds((prev) => prev.filter((id) => id !== tier.id));
+            }
+            return;
+        }
+        setTierRows((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
+        setTierChangesPendingSave(true);
+    };
+
+    const handleEditTier = (tier, index) => {
+        setTierDraft({
+            tier_sequence_number: tier.tier_sequence_number ?? "",
+            from_amount: tier.from_amount ?? "",
+            to_amount: tier.to_amount ?? "",
+            one_time_commission: tier.one_time_commission ?? "",
+        });
+        setEditingTierIndex(index);
+        setIsTierListDialogOpen(false);
+        setIsAddTierDialogOpen(true);
+    };
+
+    const handleCommissionSubmit = (event) => {
+        event.preventDefault();
+        if (formData.use_one_time_tiers && tierRows.length === 0) {
+            setTierListError(t("forms.agentCommissionMaster.tierRequiredError"));
+            return;
+        }
+        setTierListError("");
+        handleSubmit(event);
+        setTierChangesPendingSave(false);
+    };
     const isDrawer = mode === "edit";
     if (!open) return null;
 
@@ -213,7 +295,7 @@ export function AgentCommissionMasterFormDialog({
                     </>
                 }
             >
-                <form id={formId} onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <form id={formId} onSubmit={handleCommissionSubmit} className="flex flex-col gap-4">
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-gray-700">{t("forms.agentCommissionMaster.company")}</label>
                         <SearchableSelect
@@ -291,20 +373,32 @@ export function AgentCommissionMasterFormDialog({
                             onChange={(event) => {
                                 const checked = event.target.checked;
                                 setFormData({ ...formData, use_one_time_tiers: checked });
-                                if (checked) setIsTierListDialogOpen(true);
+                                if (checked) {
+                                    setIsTierListDialogOpen(true);
+                                } else {
+                                    setTierListError("");
+                                }
                             }}
                             className="h-4 w-4 rounded border-slate-300"
                         />
                         {t("forms.agentCommissionMaster.useOneTimeTiers")}
                     </label>
                     {formData.use_one_time_tiers ? (
-                        <button
-                            type="button"
-                            onClick={() => setIsTierListDialogOpen(true)}
-                            className="w-fit rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
-                        >
-                            {t("forms.agentCommissionMaster.configureTiers", { count: tierRows.length })}
-                        </button>
+                        <>
+                            <button
+                                type="button"
+                                onClick={() => setIsTierListDialogOpen(true)}
+                                className="w-fit rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
+                            >
+                                {t("forms.agentCommissionMaster.configureTiers", { count: tierRows.length })}
+                            </button>
+                            {tierListError ? (
+                                <p className="text-xs text-rose-600">{tierListError}</p>
+                            ) : null}
+                            {tierChangesPendingSave ? (
+                                <p className="text-xs text-amber-700">{t("forms.agentCommissionMaster.saveCommissionAfterTierEdit")}</p>
+                            ) : null}
+                        </>
                     ) : null}
 
                     <div className="space-y-2">
@@ -394,6 +488,13 @@ export function AgentCommissionMasterFormDialog({
                     <button
                         type="button"
                         onClick={() => {
+                            setEditingTierIndex(null);
+                            setTierDraft({
+                                tier_sequence_number: "",
+                                from_amount: "",
+                                to_amount: "",
+                                one_time_commission: "",
+                            });
                             setIsTierListDialogOpen(false);
                             setIsAddTierDialogOpen(true);
                         }}
@@ -406,13 +507,23 @@ export function AgentCommissionMasterFormDialog({
                             tierRows.map((tier, index) => (
                                 <div key={`${tier.id || "new"}-${index}`} className="flex items-center justify-between px-3 py-2 text-sm text-slate-700">
                                     <span>#{tier.tier_sequence_number} | {tier.from_amount} - {tier.to_amount} | {tier.one_time_commission}</span>
-                                    <button
-                                        type="button"
-                                        onClick={() => setTierRows((prev) => prev.filter((_, rowIndex) => rowIndex !== index))}
-                                        className="text-rose-600 hover:text-rose-700"
-                                    >
-                                        {t("common.delete")}
-                                    </button>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleEditTier(tier, index)}
+                                            className="text-slate-700 hover:text-slate-900"
+                                        >
+                                            {t("common.edit")}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteTier(tier, index)}
+                                            disabled={Boolean(tier?.id) && deletingTierIds.includes(tier.id)}
+                                            className="text-rose-600 hover:text-rose-700"
+                                        >
+                                            {t("common.delete")}
+                                        </button>
+                                    </div>
                                 </div>
                             ))
                         ) : (
@@ -425,22 +536,29 @@ export function AgentCommissionMasterFormDialog({
             <ModalShell
                 open={isAddTierDialogOpen}
                 onOpenChange={setIsAddTierDialogOpen}
-                title={t("forms.agentCommissionTier.titleAdd")}
-                description={t("forms.agentCommissionTier.subtitleAdd")}
+                title={editingTierIndex !== null ? t("forms.agentCommissionTier.titleEdit") : t("forms.agentCommissionTier.titleAdd")}
+                description={editingTierIndex !== null ? t("forms.agentCommissionTier.subtitleEdit") : t("forms.agentCommissionTier.subtitleAdd")}
                 size="lg"
                 align="center"
                 footer={
                     <>
-                        <button type="button" onClick={() => setIsAddTierDialogOpen(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-100">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsAddTierDialogOpen(false);
+                                setEditingTierIndex(null);
+                            }}
+                            className="rounded-lg border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-100"
+                        >
                             {t("common.cancel")}
                         </button>
-                        <button type="submit" form={tierFormId} disabled={addTierDisabled} className="btn-primary disabled:cursor-not-allowed">
-                            {t("forms.agentCommissionTier.add")}
+                        <button type="submit" form={tierFormId} disabled={isTierSaveDisabled} className="btn-primary disabled:cursor-not-allowed">
+                            {editingTierIndex !== null ? t("common.saveChanges") : t("forms.agentCommissionTier.add")}
                         </button>
                     </>
                 }
             >
-                <form id={tierFormId} onSubmit={handleAddTier} className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <form id={tierFormId} onSubmit={handleSaveTier} className="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <div className="space-y-2">
                         <label htmlFor="tier_sequence_number" className="block text-sm font-medium text-gray-700">{t("forms.agentCommissionTier.tierSequenceNumber")}</label>
                         <input
@@ -463,6 +581,11 @@ export function AgentCommissionMasterFormDialog({
                             onChange={(event) => setTierDraft((prev) => ({ ...prev, from_amount: event.target.value }))}
                             className="w-full px-3 py-2 border border-gray-200 rounded-lg focus-brand"
                         />
+                        {isTierFromAmountInvalid ? (
+                            <p className="text-xs text-rose-600">
+                                {t("forms.agentCommissionTier.fromAmountAtLeastPreviousTo")}
+                            </p>
+                        ) : null}
                     </div>
                     <div className="space-y-2">
                         <label htmlFor="to_amount" className="block text-sm font-medium text-gray-700">{t("forms.agentCommissionTier.toAmount")}</label>
@@ -475,6 +598,11 @@ export function AgentCommissionMasterFormDialog({
                             onChange={(event) => setTierDraft((prev) => ({ ...prev, to_amount: event.target.value }))}
                             className="w-full px-3 py-2 border border-gray-200 rounded-lg focus-brand"
                         />
+                        {isTierToAmountInvalid ? (
+                            <p className="text-xs text-rose-600">
+                                {t("forms.agentCommissionTier.toAmountAtLeastFromAmount")}
+                            </p>
+                        ) : null}
                     </div>
                     <div className="space-y-2">
                         <label htmlFor="one_time_commission" className="block text-sm font-medium text-gray-700">{tierOneTimeLabel}</label>
