@@ -1609,6 +1609,39 @@ export function DatabaseManager({ userEmail, onLogout }) {
             </div>
         );
     })();
+    const agentCommissionTierContent = (() => {
+        if (!drawerItem || drawerPage !== "agent-commission-master") return null;
+        const tiers = Array.isArray(drawerItem.tiers) ? drawerItem.tiers : [];
+        if (!tiers.length) return null;
+        const sortedTiers = [...tiers].sort((a, b) => (a.tier_sequence_number || 0) - (b.tier_sequence_number || 0));
+        return (
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <div className="mb-3 text-sm font-semibold text-slate-900">{t("forms.agentCommissionMaster.tierDialogTitle")}</div>
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[640px] text-sm">
+                        <thead>
+                            <tr className="border-b border-slate-200 text-start text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                <th className="px-3 py-2 text-start">{t("forms.agentCommissionTier.tierSequenceNumber")}</th>
+                                <th className="px-3 py-2 text-start">{t("forms.agentCommissionTier.fromAmount")}</th>
+                                <th className="px-3 py-2 text-start">{t("forms.agentCommissionTier.toAmount")}</th>
+                                <th className="px-3 py-2 text-start">{t("forms.agentCommissionTier.oneTimeCommission")}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sortedTiers.map((tier) => (
+                                <tr key={tier.id} className="border-b border-slate-100 last:border-b-0">
+                                    <td className="px-3 py-2 text-slate-700">{tier.tier_sequence_number}</td>
+                                    <td className="px-3 py-2 text-slate-700">{tier.from_amount}</td>
+                                    <td className="px-3 py-2 text-slate-700">{tier.to_amount}</td>
+                                    <td className="px-3 py-2 text-slate-700">{tier.one_time_commission}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    })();
     const resolveUserName = (user) => {
         if (!user) return null;
         return user.full_name || user.email || user.id || null;
@@ -1658,6 +1691,7 @@ export function DatabaseManager({ userEmail, onLogout }) {
                         ? masterAgentLinkedContent
                         : null
                 }
+                detailsExtraContent={drawerPage === "agent-commission-master" ? agentCommissionTierContent : null}
                 historyFields={historyFields}
                 onEdit={
                     drawerItem

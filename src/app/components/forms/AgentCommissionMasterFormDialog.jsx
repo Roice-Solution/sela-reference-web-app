@@ -398,6 +398,33 @@ export function AgentCommissionMasterFormDialog({
                             {tierChangesPendingSave ? (
                                 <p className="text-xs text-amber-700">{t("forms.agentCommissionMaster.saveCommissionAfterTierEdit")}</p>
                             ) : null}
+                            {tierRows.length ? (
+                                <div className="overflow-x-auto rounded-lg border border-slate-200">
+                                    <table className="w-full min-w-[620px] text-sm">
+                                        <thead>
+                                            <tr className="border-b border-slate-200 text-start text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                                <th className="px-3 py-2 text-start">{t("forms.agentCommissionTier.tierSequenceNumber")}</th>
+                                                <th className="px-3 py-2 text-start">{t("forms.agentCommissionTier.fromAmount")}</th>
+                                                <th className="px-3 py-2 text-start">{t("forms.agentCommissionTier.toAmount")}</th>
+                                                <th className="px-3 py-2 text-start">{t("forms.agentCommissionTier.oneTimeCommission")}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {tierRows
+                                                .slice()
+                                                .sort((a, b) => (a.tier_sequence_number || 0) - (b.tier_sequence_number || 0))
+                                                .map((tier, index) => (
+                                                    <tr key={`${tier.id || "tier"}-${index}`} className="border-b border-slate-100 last:border-b-0">
+                                                        <td className="px-3 py-2 text-slate-700">{tier.tier_sequence_number}</td>
+                                                        <td className="px-3 py-2 text-slate-700">{tier.from_amount}</td>
+                                                        <td className="px-3 py-2 text-slate-700">{tier.to_amount}</td>
+                                                        <td className="px-3 py-2 text-slate-700">{tier.one_time_commission}</td>
+                                                    </tr>
+                                                ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : null}
                         </>
                     ) : null}
 

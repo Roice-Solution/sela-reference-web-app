@@ -100,7 +100,7 @@ export function GenericTableList({
             <tr>
               {columns.map((col) => {
             const isActive = sortKey === col.key;
-            return (<th key={col.key} className={`border-b border-slate-200 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 ${col.width || ""}`}>
+            return (<th key={col.key} className={`border-b border-slate-200 px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-slate-500 ${col.width || ""}`}>
                   <button
                     type="button"
                     onClick={() => onSort && onSort(col.key)}
@@ -151,7 +151,7 @@ export function GenericTableList({
                 {columns.map((col) => (<td key={col.key} className={`${cellPadding} whitespace-nowrap text-sm text-slate-700`}>
                     {renderCellValue(item[col.key], col.type)}
                   </td>))}
-                <td className={`${cellPadding} whitespace-nowrap text-right`} onClick={(event) => event.stopPropagation()}>
+                <td className={`${cellPadding} whitespace-nowrap text-end`} onClick={(event) => event.stopPropagation()}>
                   <DropdownMenu.Root>
                     <DropdownMenu.Trigger asChild>
                       <button type="button" disabled={isSaving} className="rounded-lg p-1.5 text-slate-500 transition-all duration-200 hover:bg-gradient-to-br hover:from-indigo-50 hover:to-purple-50 hover:text-indigo-600 hover:shadow-sm disabled:opacity-50">
@@ -170,7 +170,7 @@ export function GenericTableList({
                           <Pencil className="h-4 w-4"/>
                           {t("common.edit")}
                         </DropdownMenu.Item>
-                        <DropdownMenu.Item disabled={isSaving} onSelect={() => setDeleteItem(item)} className="ripple flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-red-600 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50">{t("common.delete")}
+                        <DropdownMenu.Item disabled={isSaving} onSelect={() => setDeleteItem(item)} className="ripple flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-red-600 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
                           <Trash2 className="h-4 w-4"/>
                           {t("common.delete")}
                         </DropdownMenu.Item>

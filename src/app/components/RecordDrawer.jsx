@@ -16,7 +16,7 @@ const formatValue = (value) => {
     return String(value);
 };
 
-export function RecordDrawer({ open, onOpenChange, title, columns, item, linkedContent, historyFields, onEdit }) {
+export function RecordDrawer({ open, onOpenChange, title, columns, item, linkedContent, detailsExtraContent, historyFields, onEdit }) {
     const { t } = useI18n();
 
     if (!item) return null;
@@ -29,7 +29,7 @@ export function RecordDrawer({ open, onOpenChange, title, columns, item, linkedC
                     <div className="flex h-full flex-col">
                         <div className="border-b border-slate-200 px-6 py-4">
                             <div className="flex items-start justify-between gap-3">
-                                <div>
+                                <div className="text-start">
                                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("drawer.detailsLabel")}</p>
                                     <h2 className="text-2xl font-bold text-slate-900">{title}</h2>
                                 </div>
@@ -61,12 +61,13 @@ export function RecordDrawer({ open, onOpenChange, title, columns, item, linkedC
                             <Tabs.Content value="details" className="flex-1 overflow-y-auto px-6 py-5">
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     {columns.map((col) => (
-                                        <div key={col.key} className="group rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:from-blue-50 hover:to-cyan-50 hover:shadow-md">
+                                        <div key={col.key} className="group rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white px-4 py-3 text-start shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:from-blue-50 hover:to-cyan-50 hover:shadow-md">
                                             <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{col.label}</div>
                                             <div className="mt-1 text-sm font-medium text-slate-700">{formatValue(item[col.key])}</div>
                                         </div>
                                     ))}
                                 </div>
+                                {detailsExtraContent ? <div className="mt-5">{detailsExtraContent}</div> : null}
                             </Tabs.Content>
 
                             <Tabs.Content value="linked" className="flex-1 overflow-visible px-6 py-5">
@@ -81,7 +82,7 @@ export function RecordDrawer({ open, onOpenChange, title, columns, item, linkedC
                                 {historyFields?.length ? (
                                     <div className="grid gap-4 sm:grid-cols-2">
                                         {historyFields.map((field) => (
-                                            <div key={field.label} className="group rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-purple-200 hover:from-purple-50 hover:to-pink-50 hover:shadow-md">
+                                            <div key={field.label} className="group rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white px-4 py-3 text-start shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-purple-200 hover:from-purple-50 hover:to-pink-50 hover:shadow-md">
                                                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{field.label}</div>
                                                 <div className="mt-1 text-sm font-medium text-slate-700">{formatValue(field.value)}</div>
                                             </div>

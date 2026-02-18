@@ -21,15 +21,16 @@ export function ModalShell({
         align === "right"
             ? "h-full rounded-none"
             : "rounded-2xl";
+    const contentPadding = align === "right" ? "p-0" : "p-4";
 
     return (
         <Dialog.Root open={open} onOpenChange={onOpenChange}>
             <Dialog.Portal>
                 <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />
                 <Dialog.Content
-                    className={`fixed inset-0 z-50 flex ${alignmentClasses} p-4`}
+                    className={`fixed inset-0 z-50 flex ${alignmentClasses} ${contentPadding}`}
                 >
-                    <div className={`flex w-full flex-col overflow-hidden border border-slate-200 bg-white shadow-2xl ${sizeClasses[size] || sizeClasses.lg} ${contentClasses}`}>
+                    <div className={`flex min-h-0 w-full flex-col overflow-hidden border border-slate-200 bg-white shadow-2xl ${sizeClasses[size] || sizeClasses.lg} ${contentClasses}`}>
                         <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 px-8 py-5">
                             <div>
                                 <Dialog.Title className="text-lg font-semibold text-slate-900">{title}</Dialog.Title>
@@ -49,7 +50,7 @@ export function ModalShell({
                                 </button>
                             </Dialog.Close>
                         </div>
-                        <div className="flex-1 overflow-y-auto px-8 py-6">{children}</div>
+                        <div className="min-h-0 flex-1 overflow-y-auto px-8 py-6">{children}</div>
                         {footer ? (
                             <div className="flex justify-end gap-2 border-t border-slate-200 bg-slate-50 px-8 py-5">
                                 {footer}
